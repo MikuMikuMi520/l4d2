@@ -3,16 +3,20 @@
 #include <sourcemod>
 #include <colors>
 #include <left4dhooks>
+#include <sourcescramble>
 
-#define PLUGIN_NAME				"Coop Boss Spawning"
-#define PLUGIN_AUTHOR			"sorallll"
-#define PLUGIN_DESCRIPTION		""
-#define PLUGIN_VERSION			"1.0.1"
-#define PLUGIN_URL				""
+#define PLUGIN_NAME					"Coop Boss Spawning"
+#define PLUGIN_AUTHOR				"sorallll"
+#define PLUGIN_DESCRIPTION			""
+#define PLUGIN_VERSION				"1.0.2"
+#define PLUGIN_URL					""
 
-ConVar
-	g_cvDirectorNoBoss,
-	g_cvDirectorNoSpec;
+#define GAMEDATA					"coop_boss_spawning"
+
+#define PATCH_NO_DIRECTOR_BOSS		"CDirector::OnThreatEncountered::Block"
+#define PATCH_COOP_VERSUS_BOSS		"CDirectorVersusMode::UpdateNonVirtual::IsVersusMode"
+#define PATCH_BLOCK_MARKERSTIMER	"CDirectorVersusMode::UpdateNonVirtual::UpdateMarkersTimer"
+#define PATCH_TANKCOUNT_SPAWN_WITCH	"CDirectorVersusMode::UpdateVersusBossSpawning::m_iTankCount"
 
 public Plugin myinfo = {
 	name = PLUGIN_NAME,
@@ -23,18 +27,8 @@ public Plugin myinfo = {
 };
 
 public void OnPluginStart() {
-	g_cvDirectorNoBoss = FindConVar("director_no_bosses");
-	g_cvDirectorNoSpec = FindConVar("director_no_specials");
-}
-
-public void OnPluginEnd() {
-	g_cvDirectorNoBoss.RestoreDefault();
-	g_cvDirectorNoSpec.RestoreDefault();
-}
-
-public void OnConfigsExecuted() {
-	g_cvDirectorNoBoss.IntValue = 1;
-	g_cvDirectorNoSpec.IntValue = 1;
+	InitGameData();
+	CreateConVar("coop_boss_spawning_version", PLUGIN_VERSION, "Coop Boss Spawning plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
 }
 
 public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal) {
@@ -57,4 +51,30 @@ public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client) {
 		CPrintToChatAll("{olive}Witch{default}: {red}none");
 	else
 		CPrintToChatAll("{olive}Witch{default}: {red}%d%%", RoundToNearest(L4D2Direct_GetVSWitchFlowPercent(round) * 100.0));
+}
+
+void InitGameData() {
+	char buffer[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, buffer, sizeof buffer, "gamedata/%s.txt", GAMEDATA);
+	if (!FileExists(buffer))
+		SetFailState("\n==========\nMissing required file: \"%s\".\n==========", buffer);
+
+	GameData hGameData = new GameData(GAMEDATA);
+	if (!hGameData)
+		SetFailState("Failed to load \"%s.txt\" gamedata.", GAMEDATA);
+
+	Patch(hGameData, PATCH_NO_DIRECTOR_BOSS);
+	Patch(hGameData, PATCH_COOP_VERSUS_BOSS);
+	Patch(hGameData, PATCH_BLOCK_MARKERSTIMER);
+	Patch(hGameData, PATCH_TANKCOUNT_SPAWN_WITCH);
+
+	delete hGameData;
+}
+
+void Patch(GameData hGameData = null, const char[] name) {
+	MemoryPatch patch = MemoryPatch.CreateFromConf(hGameData, name);
+	if (!patch.Validate())
+		SetFailState("Failed to verify patch: \"%s\"", name);
+	else if (patch.Enable())
+		PrintToServer("Enabled patch: \"%s\"", name);
 }
