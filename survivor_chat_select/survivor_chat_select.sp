@@ -11,7 +11,7 @@
 #define PLUGIN_NAME				"Survivor Chat Select"
 #define PLUGIN_AUTHOR			"DeatChaos25, Mi123456 & Merudo, Lux, SilverShot"
 #define PLUGIN_DESCRIPTION		"Select a survivor character by typing their name into the chat."
-#define PLUGIN_VERSION			"1.7.7"
+#define PLUGIN_VERSION			"1.7.8"
 #define PLUGIN_URL				"https://forums.alliedmods.net/showthread.php?p=2399163#post2399163"
 
 #define GAMEDATA				"survivor_chat_select"
@@ -63,9 +63,10 @@ bool
 	g_bAutoModel,
 	g_bAdminsOnly,
 	g_bTransition,
+	g_bTransitioned,
 	g_bInTransition,
 	g_bBlockUserMsg,
-	g_bPrepRestoreBots,
+	g_bRestoringBots,
 	g_bIgnoreOnce[MAXPLAYERS + 1];
 
 static const char
@@ -1055,12 +1056,12 @@ void SetupDetours(GameData hGameData = null) {
 }
 
 MRESReturn DD_RestoreTransitionedSurvivorBot_Pre() {
-	g_bPrepRestoreBots = true;
+	g_bRestoringBots = true;
 	return MRES_Ignored;
 }
 
 MRESReturn DD_RestoreTransitionedSurvivorBot_Post() {
-	g_bPrepRestoreBots = false;
+	g_bRestoringBots = false;
 	return MRES_Ignored;
 }
 
@@ -1070,19 +1071,29 @@ MRESReturn DD_InfoChangelevel_ChangeLevelNow_Post(Address pThis) {
 }
 
 public void OnMapEnd() {
-	int val = g_bTransition ? 0 : -1;
+	int val;
+	if (g_bTransition)
+		g_bTransitioned = true;
+	else {
+		val = -1;
+		g_bTransitioned = false;
+	}
+
 	for (int i; i <= MaxClients; i++)
 		g_iTransitioning[i] = val;
 
 	g_bTransition = false;
-	g_bPrepRestoreBots = false;
+	g_bRestoringBots = false;
 }
 
 bool PrepRestoreBots() {
-	return g_bPrepRestoreBots || (SDKCall(g_hSDK_CDirector_IsInTransition, g_pDirector) && LoadFromAddress(g_pSavedSurvivorBotsCount, NumberType_Int32));
+	return g_bTransitioned && (g_bRestoringBots || (SDKCall(g_hSDK_CDirector_IsInTransition, g_pDirector) && LoadFromAddress(g_pSavedSurvivorBotsCount, NumberType_Int32)));
 }
 
 bool PrepTransition() {
+	if (!g_bTransitioned)
+		return false;
+
 	if (!SDKCall(g_hSDK_CDirector_IsInTransition, g_pDirector))
 		return false;
 
@@ -1111,6 +1122,9 @@ bool PrepTransition() {
 }
 
 bool IsTransitioning(int userid) {
+	if (!g_bTransitioned)
+		return false;
+
 	if (!SDKCall(g_hSDK_CDirector_IsInTransition, g_pDirector))
 		return false;
 
