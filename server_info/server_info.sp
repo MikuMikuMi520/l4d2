@@ -7,7 +7,7 @@
 #define PLUGIN_NAME				"Server Info Hud"
 #define PLUGIN_AUTHOR			"sorallll"
 #define PLUGIN_DESCRIPTION		""
-#define PLUGIN_VERSION			"1.0.2"
+#define PLUGIN_VERSION			"1.0.3"
 #define PLUGIN_URL				""
 
 enum struct esData {
@@ -92,13 +92,13 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast) {
 
 Action tmrUpdate(Handle timer) {
 	HUDSetLayout(HUD_SCORE_1, HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣统计: %d特感 %d僵尸", g_esData.totalSI, g_esData.totalCI);
-	HUDPlace(HUD_SCORE_1, 0.73, 0.86, 1.0, 0.03);
+	HUDPlace(HUD_SCORE_1, 0.70, 0.86, 1.0, 0.03);
 
 	HUDSetLayout(HUD_SCORE_2, HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣运行: %dm", RoundToFloor((GetEngineTime() - g_fMapRunTime) / 60.0));
-	HUDPlace(HUD_SCORE_2, 0.73, 0.89, 1.0, 0.03);
+	HUDPlace(HUD_SCORE_2, 0.70, 0.89, 1.0, 0.03);
 
 	HUDSetLayout(HUD_SCORE_3, HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣地图: %d/%d", g_iCurrentChapter, g_iMaxChapters);
-	HUDPlace(HUD_SCORE_3, 0.73, 0.92, 1.0, 0.03);
+	HUDPlace(HUD_SCORE_3, 0.70, 0.92, 1.0, 0.03);
 
 	static int client;
 	static float highestFlow;
@@ -106,8 +106,23 @@ Action tmrUpdate(Handle timer) {
 	if (highestFlow)
 		highestFlow = highestFlow / g_fMapMaxFlow * 100;
 
-	HUDSetLayout(HUD_SCORE_4, HUD_FLAG_BLINK|HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣路程: %d％", RoundToCeil(highestFlow));
-	HUDPlace(HUD_SCORE_4, 0.73, 0.95, 1.0, 0.03);
+	static char buffer[128];
+	FormatEx(buffer, sizeof buffer, "➣路程: %d％", RoundToCeil(highestFlow));
+
+	int len;
+	int round = GameRules_GetProp("m_bInSecondHalfOfRound");
+	if (L4D2Direct_GetVSTankToSpawnThisRound(round)) {
+		len = strlen(buffer);
+		Format(buffer[len], sizeof buffer - len, " [Tank]: %d％", RoundToNearest(L4D2Direct_GetVSTankFlowPercent(round) * 100.0));
+	}
+		
+	if (L4D2Direct_GetVSWitchToSpawnThisRound(round)) {
+		len = strlen(buffer);
+		Format(buffer[len], sizeof buffer - len, " [Witch]: %d％", RoundToNearest(L4D2Direct_GetVSWitchFlowPercent(round) * 100.0));
+	}
+
+	HUDSetLayout(HUD_SCORE_4, HUD_FLAG_BLINK|HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "%s", buffer);
+	HUDPlace(HUD_SCORE_4, 0.70, 0.95, 1.0, 0.03);
 
 	return Plugin_Continue;
 }
