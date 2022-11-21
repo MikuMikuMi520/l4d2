@@ -2,6 +2,7 @@
 #pragma newdecls required
 #include <sourcemod>
 #include <sdktools>
+#include <left4dhooks>
 
 #define PLUGIN_VERSION "1.9.1"
 
@@ -20,7 +21,6 @@ ArrayList
 
 bool
 	g_bLateLoad,
-	g_bRespawnPZ,
 	g_bMapStarted,
 	g_bSettingAllow;
 
@@ -57,7 +57,6 @@ public Plugin myinfo = {
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max) {
 	vCreateNatives();
-	MarkNativeAsOptional("CZ_RespawnPZ");
 
 	g_bLateLoad = late;
 	return APLRes_Success;
@@ -84,7 +83,6 @@ void vCreateNatives() {
 }
 
 public void OnAllPluginsLoaded() {
-	g_bRespawnPZ = GetFeatureStatus(FeatureType_Native, "CZ_RespawnPZ") == FeatureStatus_Available;
 	Call_StartForward(g_hForwardOnPSLoaded);
 	Call_Finish();
 }
@@ -192,7 +190,6 @@ any aNative_PS_UnregisterModule(Handle plugin, int numParams) {
 }
 
 bool g_bWeaponHandling;
-native bool CZ_RespawnPZ(int client, int zombieClass);
 public void OnLibraryAdded(const char[] name) {
 	if (strcmp(name, "WeaponHandling") == 0)
 		g_bWeaponHandling = true;
@@ -571,7 +568,7 @@ void vCreateConVars() {
 	vInitItemCosts();
 	vInitPointRewards();
 	vInitSpecialCosts();
-	AutoExecConfig(true);
+	//AutoExecConfig(true);
 }
 
 void vRegisterCommands() {
@@ -3023,53 +3020,15 @@ int iInfectedConfirmMenuHandler(Menu menu, MenuAction action, int param1, int pa
 								if (IsPlayerAlive(param1))
 									return 0;
 					
-								if (g_bRespawnPZ) {
-									static StringMap aZombieClass;
-									if (!aZombieClass)
-										aZombieClass = aInitZombieClass(aZombieClass);
+								static StringMap aZombieClass;
+								if (!aZombieClass)
+									aZombieClass = aInitZombieClass(aZombieClass);
 
-									int iZombieClass;
-									aZombieClass.GetValue(sArguments, iZombieClass);
-									if (iZombieClass)
-										CZ_RespawnPZ(param1, iZombieClass);
-								}
-								else {
-									int i = 1;
-									bool[] bGhost = new bool[MaxClients];
-									bool[] bLifeState = new bool[MaxClients];
-									for (; i <= MaxClients; i++) {
-										if (i == param1 || !IsClientInGame(i) || IsFakeClient(i) || GetClientTeam(i) != 3)
-											continue;
-
-										if (GetEntProp(i, Prop_Send, "m_isGhost")) {
-											bGhost[i] = true;
-											SetEntProp(i, Prop_Send, "m_isGhost", 0);
-										}
-										else if (!IsPlayerAlive(i)) {
-											bLifeState[i] = true;
-											SetEntProp(i, Prop_Send, "m_lifeState", 0);
-										}
-									}
-	
-									vCheatCommandEx(param1, sCommand, sArguments);
-
-									for (i = 1; i <= MaxClients; i++) {
-										if (bGhost[i])
-											SetEntProp(i, Prop_Send, "m_isGhost", 1);
-
-										if (bLifeState[i])
-											SetEntProp(i, Prop_Send, "m_lifeState", 1);
-									}
-				
-									if (IsPlayerAlive(param1)) {
-										strcopy(g_esPlayer[param1].g_sBought, sizeof esPlayer::g_sBought, g_esPlayer[param1].g_sCommand);
-										g_esPlayer[param1].g_iBoughtCost = g_esPlayer[param1].g_iItemCost;
-										vRemovePoints(param1, g_esPlayer[param1].g_iItemCost);
-									}
-									else
-										PrintToChat(param1, "%s %T", MSGTAG, "Spawn Failed", param1);
-
-									return 0;
+								int iZombieClass;
+								aZombieClass.GetValue(sArguments, iZombieClass);
+								if (iZombieClass) {
+									L4D_SetClass(param1, iZombieClass);
+									L4D_State_Transition(param1, STATE_GHOST);
 								}
 							}
 						}
