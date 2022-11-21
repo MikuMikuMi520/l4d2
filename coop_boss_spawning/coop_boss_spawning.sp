@@ -8,7 +8,7 @@
 #define PLUGIN_NAME					"Coop Boss Spawning"
 #define PLUGIN_AUTHOR				"sorallll"
 #define PLUGIN_DESCRIPTION			""
-#define PLUGIN_VERSION				"1.0.2"
+#define PLUGIN_VERSION				"1.0.3"
 #define PLUGIN_URL					""
 
 #define GAMEDATA					"coop_boss_spawning"
