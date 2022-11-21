@@ -3027,8 +3027,8 @@ int iInfectedConfirmMenuHandler(Menu menu, MenuAction action, int param1, int pa
 								int iZombieClass;
 								aZombieClass.GetValue(sArguments, iZombieClass);
 								if (iZombieClass) {
-									L4D_SetClass(param1, iZombieClass);
 									L4D_State_Transition(param1, STATE_GHOST);
+									L4D_SetClass(param1, iZombieClass);
 								}
 							}
 						}
