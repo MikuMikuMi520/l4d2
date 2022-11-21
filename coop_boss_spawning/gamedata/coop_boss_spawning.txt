@@ -10,9 +10,9 @@
 
 				"linux"
 				{
-					"offset"	"0"
-					"verify"	"\x55"
-					"patch"		"\xC3"
+					"offset"	"16h"
+					"verify"	"\x74"
+					"patch"		"\x90\x90"
 				}
 				
 				"windows"
