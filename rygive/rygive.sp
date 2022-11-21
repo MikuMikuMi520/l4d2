@@ -1186,8 +1186,8 @@ int SelectClass_MenuHandler(Menu menu, MenuAction action, int client, int param2
 }
 
 void RespawnPZ(int client, int zombieClass) {
-	L4D_SetClass(client, zombieClass != 6 ? zombieClass + 1 : 8);
 	L4D_State_Transition(client, STATE_GHOST);
+	L4D_SetClass(client, zombieClass != 6 ? zombieClass + 1 : 8);
 }
 
 void TeleportToSurvivor(int client) {
