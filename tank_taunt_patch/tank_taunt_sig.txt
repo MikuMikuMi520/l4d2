@@ -12,14 +12,14 @@
 				{
 					"offset"	"0"
 					"verify"	"\x55"
-					"patch"		"\x55\x89\xE5\x5D\xC3"
+					"patch"		"\xC3"
 				}
 				
 				"windows"
 				{
 					"offset"	"0"
 					"verify"	"\x55"
-					"patch"		"\x55\x89\xE5\x5D\xC3"
+					"patch"		"\xC3"
 				}
 			}
 		}
