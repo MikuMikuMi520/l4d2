@@ -11,7 +11,7 @@
 #define PLUGIN_NAME				"Survivor Chat Select"
 #define PLUGIN_AUTHOR			"DeatChaos25, Mi123456 & Merudo, Lux, SilverShot"
 #define PLUGIN_DESCRIPTION		"Select a survivor character by typing their name into the chat."
-#define PLUGIN_VERSION			"1.7.8"
+#define PLUGIN_VERSION			"1.7.9"
 #define PLUGIN_URL				"https://forums.alliedmods.net/showthread.php?p=2399163#post2399163"
 
 #define GAMEDATA				"survivor_chat_select"
@@ -602,8 +602,11 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
 	if (!client || !IsClientInGame(client) || IsFakeClient(client) || GetClientTeam(client) != 2)
 		return;
 
-	if (g_bAutoModel && !g_bIgnoreOnce[client] && !IsPlayerAlive(client) && !GetBotOfIdlePlayer(client))
-		RequestFrame(NextFrame_PlayerSpawn, event.GetInt("userid"));
+	if (g_bAutoModel && !g_bIgnoreOnce[client] && !IsPlayerAlive(client)) {
+		int bot = GetBotOfIdlePlayer(client);
+		if (!bot || !GetEntProp(L4D_GetResourceEntity(), Prop_Send, "m_bConnected", _, bot))
+			RequestFrame(NextFrame_PlayerSpawn, event.GetInt("userid"));
+	}
 
 	if (g_bCookie)
 		CreateTimer(0.6, tmrLoadCookie, event.GetInt("userid"), TIMER_FLAG_NO_MAPCHANGE);
