@@ -127,8 +127,8 @@ public void OnPluginStart() {
 
 	RegConsoleCmd("sm_csm", 		cmdCsm, 		"Brings up a menu to select a client's character");
 
-	RegAdminCmd("sm_setleast", 	cmdSetLeast, ADMFLAG_ROOT, 	"");
-	RegAdminCmd("sm_csc", cmdCsc, ADMFLAG_ROOT, 	"Brings up a menu to select a client's character");
+	RegAdminCmd("sm_setleast", 		cmdSetLeast,	ADMFLAG_ROOT, "");
+	RegAdminCmd("sm_csc", 			cmdCsc, 		ADMFLAG_ROOT, "Brings up a menu to select a client's character");
 
 	HookEvent("round_start", 		Event_RoundStart, 		EventHookMode_PostNoCopy);
 	HookEvent("bot_player_replace", Event_BotPlayerReplace, EventHookMode_Pre);
@@ -604,7 +604,7 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
 
 	if (g_bAutoModel && !g_bIgnoreOnce[client] && !IsPlayerAlive(client)) {
 		int bot = GetBotOfIdlePlayer(client);
-		if (!bot || !GetEntProp(L4D_GetResourceEntity(), Prop_Send, "m_bConnected", _, bot))
+		if (!bot || !GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_bConnected", _, bot))
 			RequestFrame(NextFrame_PlayerSpawn, event.GetInt("userid"));
 	}
 
