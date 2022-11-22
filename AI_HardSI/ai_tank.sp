@@ -129,29 +129,22 @@ public Action OnPlayerRunCmd(int client, int &buttons) {
 		if (vPos[2] > vEye2[2])
 			return Plugin_Continue;
 
-		if (!IsVisibleTo(vEye2, vEye1))
-			return Plugin_Continue;
-
-		GetVectorAngles(vVel, vAng);
-		vVel = vAng;
-		vAng[0] = vAng[2] = 0.0;
-		GetAngleVectors(vAng, vAng, NULL_VECTOR, NULL_VECTOR);
+		vAng = vVel;
+		vAng[2] = 0.0;
 		NormalizeVector(vAng, vAng);
 
-		static float vDir[2][3];
-		vDir[0] = vPos;
-		vDir[1] = vTar;
-		vPos[2] = vTar[2] = 0.0;
-		MakeVectorFromPoints(vPos, vEye2, vPos);
-		NormalizeVector(vPos, vPos);
-		if (RadToDeg(ArcCosine(GetVectorDotProduct(vAng, vPos))) < 90.0)
+		static float vBuf[3];
+		MakeVectorFromPoints(vPos, vTar, vBuf);
+		vBuf[2] = 0.0;
+		NormalizeVector(vBuf, vBuf);
+		if (RadToDeg(ArcCosine(GetVectorDotProduct(vAng, vBuf))) < 90.0)
 			return Plugin_Continue;
 
 		if (vecHitWall(client, vPos, vTar))
 			return Plugin_Continue;
 
-		MakeVectorFromPoints(vDir[0], vDir[1], vDir[0]);
-		TeleportEntity(client, NULL_VECTOR, vVel, vDir[0]);
+		MakeVectorFromPoints(vPos, vEye2, vVel);
+		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vVel);
 		g_bModify[client] = true;
 	}
 	
@@ -451,6 +444,8 @@ bool vecHitWall(int client, float vPos[3], float vTar[3]) {
 	static float vMaxs[3];
 	GetClientMins(client, vMins);
 	GetClientMaxs(client, vMaxs);
+	vMins[2] += 10.0;
+	vMaxs[2] -= 10.0;
 
 	static bool hit;
 	static Handle hndl;
