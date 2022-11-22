@@ -106,7 +106,7 @@ Action tmrUpdate(Handle timer) {
 		len = strlen(buffer);
 		Format(buffer[len], sizeof buffer - len, " [Tank]: %d％", RoundToNearest(L4D2Direct_GetVSTankFlowPercent(round) * 100.0));
 	}
-		
+
 	if (L4D2Direct_GetVSWitchToSpawnThisRound(round)) {
 		len = strlen(buffer);
 		Format(buffer[len], sizeof buffer - len, " [Witch]: %d％", RoundToNearest(L4D2Direct_GetVSWitchFlowPercent(round) * 100.0));
@@ -118,7 +118,7 @@ Action tmrUpdate(Handle timer) {
 	HUDSetLayout(HUD_SCORE_2, HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣地图: %d/%d", g_iCurrentChapter, g_iMaxChapters);
 	HUDPlace(HUD_SCORE_2, 0.70, 0.89, 1.0, 0.03);
 
-	HUDSetLayout(HUD_SCORE_3, HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣运行: %dm | %dm", RoundToFloor((GetEngineTime() - g_fMapRunTime) / 60.0), RoundToFloor(GetEntProp(L4D_GetResourceEntity(), Prop_Send, "m_missionDuration") / 60.0));
+	HUDSetLayout(HUD_SCORE_3, HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣运行: %dm | %dm", RoundToFloor((GetEngineTime() - g_fMapRunTime) / 60.0), RoundToFloor(GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_missionDuration") / 60.0));
 	HUDPlace(HUD_SCORE_3, 0.70, 0.92, 1.0, 0.03);
 
 	HUDSetLayout(HUD_SCORE_4, HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣统计: %d特感 %d僵尸", g_eData.TotalSI, g_eData.TotalCI);
@@ -135,7 +135,7 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast) {
 	int attacker = GetClientOfUserId(event.GetInt("attacker"));
 	if (!attacker || !IsClientInGame(attacker) || GetClientTeam(attacker) != 2)
 		return;
-	
+
 	g_eData.TotalSI++;
 }
 
