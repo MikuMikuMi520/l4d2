@@ -30,7 +30,6 @@ bool
 	g_bLateLoad;
 
 float
-	g_fMapRunTime,
 	g_fMapMaxFlow;
 
 int
@@ -65,7 +64,6 @@ public void OnPluginStart() {
 }
 
 public void OnConfigsExecuted() {
-	g_fMapRunTime = GetEngineTime();
 	g_fMapMaxFlow = L4D2Direct_GetMapMaxFlowDistance();
 
 	g_iMaxChapters = L4D_GetMaxChapters();
@@ -118,7 +116,7 @@ Action tmrUpdate(Handle timer) {
 	HUDSetLayout(HUD_SCORE_2, HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣地图: %d/%d", g_iCurrentChapter, g_iMaxChapters);
 	HUDPlace(HUD_SCORE_2, 0.70, 0.89, 1.0, 0.03);
 
-	HUDSetLayout(HUD_SCORE_3, HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣运行: %dm | %dm", RoundToFloor((GetEngineTime() - g_fMapRunTime) / 60.0), RoundToFloor(GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_missionDuration") / 60.0));
+	HUDSetLayout(HUD_SCORE_3, HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣运行: %dm", GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_missionDuration") / 60);
 	HUDPlace(HUD_SCORE_3, 0.70, 0.92, 1.0, 0.03);
 
 	HUDSetLayout(HUD_SCORE_4, HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "➣统计: %d特感 %d僵尸", g_eData.TotalSI, g_eData.TotalCI);
