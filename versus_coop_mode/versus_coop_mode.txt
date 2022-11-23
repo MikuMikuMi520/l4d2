@@ -73,35 +73,8 @@
 			}
 		}
 
-		"Addresses"
-		{
-			"CDirector"
-			{
-				"linux"
-				{
-					"signature"	"TheDirector"
-				}
-				"windows"
-				{
-					"signature"	"CDirectorMusicBanks::OnRoundStart"
-					"read"		"12"
-				}
-				"read"	"0"
-			}
-		}
-
 		"Offsets"
 		{
-			/**
-			* 搜索字符串 "#L4D_Scenario_Restart"
-			**/
-			/* CDirector->RestartScenarioTimer (CDirector::OnEndScenario) */
-			"RestartScenarioTimer"
-			{
-				"linux"		"424"
-				"windows"	"424"
-			}
-
 			/**
 			* 搜索字符串 "#L4D_Scenario_Restart"
 			**/
@@ -157,20 +130,6 @@
 				"linux"		"@_ZN19CDirectorVersusMode13RestartVsModeEv"
 				"windows"	"\x55\x8B\xEC\x83\xEC\x14\x57\x8B\xF9\x80\x7F\x06\x00
 				/* 55 8B EC 83 EC 14 57 8B F9 80 7F 06 00 */
-			}
-
-			"TheDirector"
-			{
-				"library"	"server"
-				"linux"		"@TheDirector"
-			}
-
-			/* CDirectorMusicBanks::OnRoundStart(CDirectorMusicBanks *__hidden this) */
-			"CDirectorMusicBanks::OnRoundStart"
-			{
-				"library"	"server"
-				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x56\x57\x8B\x2A\x8B\x0D\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x84\x2A\x0F"
-				/* ? ? ? ? ? ? 56 57 8B ? 8B 0D ? ? ? ? E8 ? ? ? ? 84 ? 0F */
 			}
 		}
 	}
