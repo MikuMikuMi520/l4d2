@@ -30,7 +30,7 @@ void Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast) 
 	if (jockey != -1) {
 		int flags = GetCommandFlags("dismount");
 		SetCommandFlags("dismount", flags & ~FCVAR_CHEAT);
-		FakeClientCommand(jockey, "%s", "dismount");
+		FakeClientCommand(jockey, "dismount");
 		SetCommandFlags("dismount", flags);
 	}
 }
