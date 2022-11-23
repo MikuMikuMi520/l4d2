@@ -102,12 +102,12 @@ Action tmrUpdate(Handle timer) {
 	int round = GameRules_GetProp("m_bInSecondHalfOfRound");
 	if (L4D2Direct_GetVSTankToSpawnThisRound(round)) {
 		len = strlen(buffer);
-		Format(buffer[len], sizeof buffer - len, " [Tank]: %d％", RoundToNearest(L4D2Direct_GetVSTankFlowPercent(round) * 100.0));
+		Format(buffer[len], sizeof buffer - len, " Tank#%d％", RoundToNearest(L4D2Direct_GetVSTankFlowPercent(round) * 100.0));
 	}
 
 	if (L4D2Direct_GetVSWitchToSpawnThisRound(round)) {
 		len = strlen(buffer);
-		Format(buffer[len], sizeof buffer - len, " [Witch]: %d％", RoundToNearest(L4D2Direct_GetVSWitchFlowPercent(round) * 100.0));
+		Format(buffer[len], sizeof buffer - len, " Witch#%d％", RoundToNearest(L4D2Direct_GetVSWitchFlowPercent(round) * 100.0));
 	}
 
 	HUDSetLayout(HUD_SCORE_1, HUD_FLAG_BLINK|HUD_FLAG_NOBG|HUD_FLAG_ALIGN_LEFT|HUD_FLAG_TEXT, "%s", buffer);
