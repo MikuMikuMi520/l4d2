@@ -6,7 +6,7 @@
 #define PLUGIN_NAME				"L4D2 Door Lock"
 #define PLUGIN_AUTHOR			"Glide Loading, sorallll"
 #define PLUGIN_DESCRIPTION		"Saferoom Door locked until all players loaded and infected are ready to spawn"
-#define PLUGIN_VERSION			"2.7.1"
+#define PLUGIN_VERSION			"2.7.2"
 #define PLUGIN_URL				"http://forums.alliedmods.net/showpost.php?p=1373587&postcount=136"
 
 #define CVAR_FLAGS				FCVAR_NOTIFY
@@ -19,20 +19,20 @@ Handle
 	g_hTimer;
 
 ConVar
-	g_cvSbStop,
-	g_cvNbStop,
-	g_cvAllow,
-	g_cvGameMode,
-	g_cvModes,
-	g_cvModesOff,
-	g_cvModesTog,
-	g_cvBreakTheDoor,
-	g_cvPrepareTime1r,
-	g_cvPrepareTime2r,
-	g_cvClientTimeOut,
-	g_cvDisplayMode,
-	g_cvDisplayPanel,
-	g_cvFreezeNodoor;
+	g_cSbStop,
+	g_cNbStop,
+	g_cAllow,
+	g_cGameMode,
+	g_cModes,
+	g_cModesOff,
+	g_cModesTog,
+	g_cBreakTheDoor,
+	g_cPrepareTime1r,
+	g_cPrepareTime2r,
+	g_cClientTimeOut,
+	g_cDisplayMode,
+	g_cDisplayPanel,
+	g_cFreezeNodoor;
 
 bool
 	g_bCvarAllow,
@@ -65,37 +65,36 @@ public Plugin myinfo = {
 
 public void OnPluginStart() {
 	LoadTranslations("doorlock.phrases");
-
 	CreateConVar("l4d2_dlock_version", PLUGIN_VERSION, "Plugin version", FCVAR_SPONLY|FCVAR_NOTIFY|FCVAR_REPLICATED);
 
-	g_cvAllow =			CreateConVar("l4d2_dlock_allow",		"1",	"0=Plugin off, 1=Plugin on.", CVAR_FLAGS);
-	g_cvModes =			CreateConVar("l4d2_dlock_modes",		"",		"Turn on the plugin in these game modes, separate by commas (no spaces). (Empty = all).", CVAR_FLAGS);
-	g_cvModesOff =		CreateConVar("l4d2_dlock_modes_off",	"",		"Turn off the plugin in these game modes, separate by commas (no spaces). (Empty = none).", CVAR_FLAGS);
-	g_cvModesTog =		CreateConVar("l4d2_dlock_modes_tog",	"0",	"Turn on the plugin in these game modes. 0=All, 1=Coop, 2=Survival, 4=Versus, 8=Scavenge. Add numbers together.", CVAR_FLAGS);
-	g_cvBreakTheDoor =	CreateConVar("l4d2_dlock_weakdoor",		"1",	"Saferoom door will be breaked, once opened.", CVAR_FLAGS);
-	g_cvPrepareTime1r =	CreateConVar("l4d2_dlock_prepare1st",	"7",	"How many seconds plugin will wait after all clients have loaded before starting first round on a map", CVAR_FLAGS);
-	g_cvPrepareTime2r =	CreateConVar("l4d2_dlock_prepare2nd",	"7",	"How many seconds plugin will wait after all clients have loaded before starting second round on a map", CVAR_FLAGS);
-	g_cvClientTimeOut =	CreateConVar("l4d2_dlock_timeout",		"45",	"How many seconds plugin will wait after a map starts before giving up on waiting for a client", CVAR_FLAGS);
-	g_cvDisplayMode =	CreateConVar("l4d2_dlock_displaymode",	"1",	"Set the display mode for the countdown. (0-off,1-hint, 2-center, 3-chat. any other value to hide countdown)", CVAR_FLAGS);
-	g_cvDisplayPanel =	CreateConVar("l4d2_dlock_displaypanel",	"2",	"Display players state panel. 0-disabled, 1-hide failed, 2-full info", CVAR_FLAGS);
-	g_cvFreezeNodoor =	CreateConVar("l4d2_dlock_freezenodoor",	"1",	"Freeze survivors if start saferoom door is absent", CVAR_FLAGS);
+	g_cAllow =			CreateConVar("l4d2_dlock_allow",		"1",	"0=Plugin off, 1=Plugin on.", CVAR_FLAGS);
+	g_cModes =			CreateConVar("l4d2_dlock_modes",		"",		"Turn on the plugin in these game modes, separate by commas (no spaces). (Empty = all).", CVAR_FLAGS);
+	g_cModesOff =		CreateConVar("l4d2_dlock_modes_off",	"",		"Turn off the plugin in these game modes, separate by commas (no spaces). (Empty = none).", CVAR_FLAGS);
+	g_cModesTog =		CreateConVar("l4d2_dlock_modes_tog",	"0",	"Turn on the plugin in these game modes. 0=All, 1=Coop, 2=Survival, 4=Versus, 8=Scavenge. Add numbers together.", CVAR_FLAGS);
+	g_cBreakTheDoor =	CreateConVar("l4d2_dlock_weakdoor",		"1",	"Saferoom door will be breaked, once opened.", CVAR_FLAGS);
+	g_cPrepareTime1r =	CreateConVar("l4d2_dlock_prepare1st",	"7",	"How many seconds plugin will wait after all clients have loaded before starting first round on a map", CVAR_FLAGS);
+	g_cPrepareTime2r =	CreateConVar("l4d2_dlock_prepare2nd",	"7",	"How many seconds plugin will wait after all clients have loaded before starting second round on a map", CVAR_FLAGS);
+	g_cClientTimeOut =	CreateConVar("l4d2_dlock_timeout",		"45",	"How many seconds plugin will wait after a map starts before giving up on waiting for a client", CVAR_FLAGS);
+	g_cDisplayMode =	CreateConVar("l4d2_dlock_displaymode",	"1",	"Set the display mode for the countdown. (0-off,1-hint, 2-center, 3-chat. any other value to hide countdown)", CVAR_FLAGS);
+	g_cDisplayPanel =	CreateConVar("l4d2_dlock_displaypanel",	"2",	"Display players state panel. 0-disabled, 1-hide failed, 2-full info", CVAR_FLAGS);
+	g_cFreezeNodoor =	CreateConVar("l4d2_dlock_freezenodoor",	"0",	"Freeze survivors if start saferoom door is absent", CVAR_FLAGS);
 
-	g_cvSbStop = FindConVar("sb_stop");
-	g_cvNbStop = FindConVar("nb_stop");
-	g_cvGameMode = FindConVar("mp_gamemode");
-	g_cvGameMode.AddChangeHook(CvarChanged_Allow);
-	g_cvModes.AddChangeHook(CvarChanged_Allow);
-	g_cvModesOff.AddChangeHook(CvarChanged_Allow);
-	g_cvModesTog.AddChangeHook(CvarChanged_Allow);
-	g_cvAllow.AddChangeHook(CvarChanged_Allow);
+	g_cSbStop =			FindConVar("sb_stop");
+	g_cNbStop =			FindConVar("nb_stop");
+	g_cGameMode =		FindConVar("mp_gamemode");
+	g_cGameMode.AddChangeHook(CvarChanged_Allow);
+	g_cModes.AddChangeHook(CvarChanged_Allow);
+	g_cModesOff.AddChangeHook(CvarChanged_Allow);
+	g_cModesTog.AddChangeHook(CvarChanged_Allow);
+	g_cAllow.AddChangeHook(CvarChanged_Allow);
 
-	g_cvBreakTheDoor.AddChangeHook(CvarChanged);
-	g_cvPrepareTime1r.AddChangeHook(CvarChanged);
-	g_cvPrepareTime2r.AddChangeHook(CvarChanged);
-	g_cvClientTimeOut.AddChangeHook(CvarChanged);
-	g_cvDisplayMode.AddChangeHook(CvarChanged);
-	g_cvDisplayPanel.AddChangeHook(CvarChanged);
-	g_cvFreezeNodoor.AddChangeHook(CvarChanged);
+	g_cBreakTheDoor.AddChangeHook(CvarChanged);
+	g_cPrepareTime1r.AddChangeHook(CvarChanged);
+	g_cPrepareTime2r.AddChangeHook(CvarChanged);
+	g_cClientTimeOut.AddChangeHook(CvarChanged);
+	g_cDisplayMode.AddChangeHook(CvarChanged);
+	g_cDisplayPanel.AddChangeHook(CvarChanged);
+	g_cFreezeNodoor.AddChangeHook(CvarChanged);
 
 	//AutoExecConfig(true);
 }
@@ -115,23 +114,23 @@ void CvarChanged(ConVar convar, const char[] oldValue, const char[] newValue) {
 void GetCvars() {
 	bool last = g_bBreakTheDoor;
 
-	g_bBreakTheDoor =	g_cvBreakTheDoor.BoolValue;
-	g_iPrepareTime1r =	g_cvPrepareTime1r.IntValue;
-	g_iPrepareTime2r =	g_cvPrepareTime2r.IntValue;
-	g_iClientTimeOut =	g_cvClientTimeOut.IntValue;
-	g_iDisplayMode =	g_cvDisplayMode.IntValue;
-	g_iDisplayPanel =	g_cvDisplayPanel.IntValue;
-	g_bFreezeNodoor =	g_cvFreezeNodoor.BoolValue;
+	g_bBreakTheDoor =	g_cBreakTheDoor.BoolValue;
+	g_iPrepareTime1r =	g_cPrepareTime1r.IntValue;
+	g_iPrepareTime2r =	g_cPrepareTime2r.IntValue;
+	g_iClientTimeOut =	g_cClientTimeOut.IntValue;
+	g_iDisplayMode =	g_cDisplayMode.IntValue;
+	g_iDisplayPanel =	g_cDisplayPanel.IntValue;
+	g_bFreezeNodoor =	g_cFreezeNodoor.BoolValue;
 
 	if (last != g_bBreakTheDoor) {
-		if (g_iStartDoor && EntRefToEntIndex(g_iStartDoor) != INVALID_ENT_REFERENCE)
+		if (g_iStartDoor && EntRefToEntIndex(g_iStartDoor) != -1)
 			UnhookSingleEntityOutput(g_iStartDoor, "OnOpen", OnOpen);
 	}
 }
 
 //Silvers
 void IsAllowed() {
-	bool bCvarAllow = g_cvAllow.BoolValue;
+	bool bCvarAllow = g_cAllow.BoolValue;
 	bool bAllowMode = IsAllowedGameMode();
 	GetCvars();
 
@@ -144,13 +143,9 @@ void IsAllowed() {
 		g_bCvarAllow = false;
 		HookEvents(false);
 		ResetPlugin();
+		DeleteTimer();
 
-		delete g_hTimer;
-
-		UnFreezeSurBots();
-		UnFreezePlayers();
-
-		if (g_iStartDoor && EntRefToEntIndex(g_iStartDoor) != INVALID_ENT_REFERENCE)
+		if (g_iStartDoor && EntRefToEntIndex(g_iStartDoor) != -1)
 			UnhookSingleEntityOutput(g_iStartDoor, "OnOpen", OnOpen);
 	}
 }
@@ -161,7 +156,7 @@ public void L4D_OnGameModeChange(int gamemode) {
 }
 
 bool IsAllowedGameMode() {
-	if (!g_cvGameMode)
+	if (!g_cGameMode)
 		return false;
 
 	if (!g_iCurrentMode)
@@ -170,22 +165,22 @@ bool IsAllowedGameMode() {
 	if (!g_bMapStarted)
 		return false;
 
-	int iCvarModesTog = g_cvModesTog.IntValue;
+	int iCvarModesTog = g_cModesTog.IntValue;
 	if (iCvarModesTog && !(iCvarModesTog & g_iCurrentMode))
 		return false;
 
 	char sGameModes[64], sGameMode[64];
-	g_cvGameMode.GetString(sGameMode, sizeof sGameMode);
+	g_cGameMode.GetString(sGameMode, sizeof sGameMode);
 	Format(sGameMode, sizeof sGameMode, ",%s,", sGameMode);
 
-	g_cvModes.GetString(sGameModes, sizeof sGameModes);
+	g_cModes.GetString(sGameModes, sizeof sGameModes);
 	if (sGameModes[0]) {
 		Format(sGameModes, sizeof sGameModes, ",%s,", sGameModes);
 		if (StrContains(sGameModes, sGameMode, false) == -1)
 			return false;
 	}
 
-	g_cvModesOff.GetString(sGameModes, sizeof sGameModes);
+	g_cModesOff.GetString(sGameModes, sizeof sGameModes);
 	if (sGameModes[0]) {
 		Format(sGameModes, sizeof sGameModes, ",%s,", sGameModes);
 		if (StrContains(sGameModes, sGameMode, false) != -1)
@@ -264,6 +259,14 @@ void ResetPlugin() {
 	g_iPlayerSpawn = 0;
 	g_bFreezeAllowed = false;
 
+	DeleteTimer();
+}
+
+void DeleteTimer() {
+	if (g_hTimer) {
+		UnFreezeSurBots();
+		UnFreezePlayers();
+	}
 	delete g_hTimer;
 }
 
@@ -282,12 +285,12 @@ void ResetLoadingState(int client, bool state = false) {
 }
 
 void StartSequence() {
-	delete g_hTimer;
+	DeleteTimer();
 
 	for (int i = 1; i <= MaxClients; i++)
 		ResetLoadingState(i, true);
 
-	if (g_iStartDoor && EntRefToEntIndex(g_iStartDoor) != INVALID_ENT_REFERENCE) {
+	if (g_iStartDoor && EntRefToEntIndex(g_iStartDoor) != -1) {
 		g_iCountDown = -1;
 		LockDoor();
 		FreezeSurBots();
@@ -296,7 +299,7 @@ void StartSequence() {
 	else if (g_bFreezeNodoor) {
 		g_iCountDown = -1;
 		g_bFreezeAllowed = true;
-		g_cvNbStop.SetInt(1); // 没有安全门则连同僵尸特感一起定住
+		g_cNbStop.SetInt(1); // 没有安全门则连同僵尸特感一起定住
 		g_hTimer = CreateTimer(1.0, tmrLoading, _, TIMER_REPEAT);
 	}
 }
@@ -307,11 +310,8 @@ Action tmrLoading(Handle timer) {
 			g_iCountDown = 0;
 
 			UnLockDoor();
-
-			if (!g_bFreezeAllowed)
-				UnFreezeSurBots();
-			else
-				UnFreezePlayers();
+			UnFreezeSurBots();
+			UnFreezePlayers();
 
 			PlaySound(SOUND_MOVEOUT);
 			PrintTextAll("%t", "DL_Moveout");
@@ -353,7 +353,7 @@ void LoadingPanel() {
 	}
 
 	Panel panel;
-	char buffer[254];
+	static char buffer[254];
 
 	for (int client = 1; client <= MaxClients; client++) {
 		if (IsClientInGame(client) && !IsFakeClient(client)) {
@@ -417,21 +417,21 @@ int PanelHandler(Menu menu, MenuAction action, int param1, int param2) {
 }
 
 void LockDoor() {
-	if (g_iStartDoor && EntRefToEntIndex(g_iStartDoor) != INVALID_ENT_REFERENCE)
+	if (g_iStartDoor && EntRefToEntIndex(g_iStartDoor) != -1)
 		SetEntProp(g_iStartDoor, Prop_Send, "m_spawnflags", DOOR_FLAG_SILENT|DOOR_FLAG_IGNORE_USE);
 }
 
 void UnLockDoor() {
-	if (g_iStartDoor && EntRefToEntIndex(g_iStartDoor) != INVALID_ENT_REFERENCE)
+	if (g_iStartDoor && EntRefToEntIndex(g_iStartDoor) != -1)
 		SetEntProp(g_iStartDoor, Prop_Send, "m_spawnflags", DOOR_FLAG_USE_CLOSES);
 }
 
 void FreezeSurBots() {
-	g_cvSbStop.SetInt(1);
+	g_cSbStop.SetInt(1);
 }
 
 void UnFreezeSurBots() {
-	g_cvSbStop.SetInt(0);
+	g_cSbStop.SetInt(0);
 }
 
 void UnFreezePlayers() {
@@ -441,7 +441,7 @@ void UnFreezePlayers() {
 		}
 	}
 
-	g_cvNbStop.SetInt(0);
+	g_cNbStop.SetInt(0);
 }
 
 void InitPlugin() {
