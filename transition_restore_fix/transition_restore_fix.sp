@@ -45,7 +45,7 @@ enum struct PlayerSaveData {
 }
 
 PlayerSaveData
-	g_esSavedData;
+	g_eSavedData;
 
 public Plugin myinfo = {
 	name = PLUGIN_NAME,
@@ -164,7 +164,7 @@ void SetupDetours(GameData hGameData = null) {
 		SetFailState("Failed to create DynamicDetour: \"DD::CDirector::Restart\"");
 
 	if (!dDetour.Enable(Hook_Pre, DD_CDirector_Restart_Pre))
-			SetFailState("Failed to detour pre: \"DD::CDirector::Restart\"");
+		SetFailState("Failed to detour pre: \"DD::CDirector::Restart\"");
 		
 	if (!dDetour.Enable(Hook_Post, DD_CDirector_Restart_Post))
 		SetFailState("Failed to detour post: \"DD::CDirector::Restart\"");
@@ -270,8 +270,8 @@ MRESReturn DD_PlayerSaveData_Restore_Pre(Address pThis, DHookParam hParams) {
 	char character[4];
 	SDKCall(g_hSDK_KeyValues_GetString, pData, ModelName, sizeof ModelName, "ModelName", "");
 	SDKCall(g_hSDK_KeyValues_GetString, pData, character, sizeof character, "character", "0");
-	strcopy(g_esSavedData.ModelName, sizeof PlayerSaveData::ModelName, ModelName);
-	strcopy(g_esSavedData.character, sizeof PlayerSaveData::character, character);
+	strcopy(g_eSavedData.ModelName, sizeof PlayerSaveData::ModelName, ModelName);
+	strcopy(g_eSavedData.character, sizeof PlayerSaveData::character, character);
 
 	GetClientModel(player, ModelName, sizeof ModelName);
 	SDKCall(g_hSDK_KeyValues_SetString, pData, "ModelName", ModelName);
@@ -286,15 +286,15 @@ MRESReturn DD_PlayerSaveData_Restore_Post(Address pThis, DHookParam hParams) {
 	if (!g_bOnRestart)
 		return MRES_Ignored;
 
-	if (g_esSavedData.character[0]) {
+	if (g_eSavedData.character[0]) {
 		Address pData = LoadFromAddress(pThis, NumberType_Int32);
 		if (pData) {
-			SDKCall(g_hSDK_KeyValues_SetString, pData, "ModelName", g_esSavedData.ModelName);
-			SDKCall(g_hSDK_KeyValues_SetString, pData, "character", g_esSavedData.character);
+			SDKCall(g_hSDK_KeyValues_SetString, pData, "ModelName", g_eSavedData.ModelName);
+			SDKCall(g_hSDK_KeyValues_SetString, pData, "character", g_eSavedData.character);
 		}
 
-		g_esSavedData.ModelName[0] = '\0';
-		g_esSavedData.character[0] = '\0';
+		g_eSavedData.ModelName[0] = '\0';
+		g_eSavedData.character[0] = '\0';
 	}
 
 	if (g_pThis)
