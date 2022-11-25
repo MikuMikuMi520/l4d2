@@ -63,33 +63,29 @@ void InitGameData() {
 }
 
 void GetOffsets(GameData hGameData = null) {
-	m_bIsFirstRoundFinished = hGameData.GetOffset(OFFSET_ISFIRSTROUNDFINISHED);
-	if (m_bIsFirstRoundFinished == -1)
-		SetFailState("Failed to find offset: \"%s\"", OFFSET_ISFIRSTROUNDFINISHED);
+	Offset(hGameData, OFFSET_ISFIRSTROUNDFINISHED, m_bIsFirstRoundFinished);
+	Offset(hGameData, OFFSET_ISSECONDROUNDFINISHED, m_bIsSecondRoundFinished);
+}
 
-	m_bIsSecondRoundFinished = hGameData.GetOffset(OFFSET_ISSECONDROUNDFINISHED);
-	if (m_bIsSecondRoundFinished == -1)
-		SetFailState("Failed to find offset: \"%s\"", OFFSET_ISSECONDROUNDFINISHED);
+void Offset(GameData hGameData = null, const char[] name, int &offset) {
+	offset = hGameData.GetOffset(name);
+	if (offset == -1)
+		SetFailState("Failed to find offset: \"%s\"", name);
 }
 
 void InitPatchs(GameData hGameData = null) {
-	MemoryPatch patch = MemoryPatch.CreateFromConf(hGameData, PATCH_SWAPTEAMS_PATCH1);
-	if (!patch.Validate())
-		SetFailState("Failed to verify patch: \"%s\"", PATCH_SWAPTEAMS_PATCH1);
-	else if (patch.Enable())
-		PrintToServer("Enabled patch: \"%s\"", PATCH_SWAPTEAMS_PATCH1);
+	MemoryPatch patch;
+	Patch(hGameData, patch, PATCH_SWAPTEAMS_PATCH1);
+	Patch(hGameData, patch, PATCH_SWAPTEAMS_PATCH2);
+	Patch(hGameData, patch, PATCH_CLEANUPMAP_PATCH);
+}
 
-	patch = MemoryPatch.CreateFromConf(hGameData, PATCH_SWAPTEAMS_PATCH2);
+void Patch(GameData hGameData = null, MemoryPatch &patch, const char[] name) {
+	patch = MemoryPatch.CreateFromConf(hGameData, name);
 	if (!patch.Validate())
-		SetFailState("Failed to verify patch: \"%s\"", PATCH_SWAPTEAMS_PATCH2);
+		SetFailState("Failed to verify patch: \"%s\"", name);
 	else if (patch.Enable())
-		PrintToServer("Enabled patch: \"%s\"", PATCH_SWAPTEAMS_PATCH2);
-
-	patch = MemoryPatch.CreateFromConf(hGameData, PATCH_CLEANUPMAP_PATCH);
-	if (!patch.Validate())
-		SetFailState("Failed to verify patch: \"%s\"", PATCH_CLEANUPMAP_PATCH);
-	else if (patch.Enable())
-		PrintToServer("Enabled patch: \"%s\"", PATCH_CLEANUPMAP_PATCH);
+		PrintToServer("[%s] Enabled patch: \"%s\"", PLUGIN_NAME, name);
 }
 
 void SetupDetours(GameData hGameData = null) {
