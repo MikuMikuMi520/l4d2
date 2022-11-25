@@ -148,7 +148,7 @@ public void OnPluginStart() {
 	g_cvAdminsOnly.AddChangeHook(CvarChanged);
 	g_cvInTransition.AddChangeHook(CvarChanged);
 
-	AutoExecConfig(true);
+	//AutoExecConfig(true);
 
 	TopMenu topmenu;
 	if (LibraryExists("adminmenu") && ((topmenu = GetAdminTopMenu())))
@@ -597,15 +597,36 @@ void Event_PlayerBotReplace(Event event, char[] name, bool dontBroadcast) {
 	RequestFrame(NextFrame_ResetVar, bot);
 }
 
+methodmap CPlayerResource {
+	public CPlayerResource() {
+		return view_as<CPlayerResource>(GetPlayerResourceEntity());
+	}
+
+	public int m_iTeam(int client) {
+		return GetEntProp(view_as<int>(this), Prop_Send, "m_iTeam", _, client);
+	}
+
+	public bool m_bAlive(int client) {
+		return !!GetEntProp(view_as<int>(this), Prop_Send, "m_bAlive", _, client);
+	}
+
+	public int m_bConnected(int client) {
+		return GetEntProp(view_as<int>(this), Prop_Send, "m_bConnected", _, client);
+	}
+}
+
 void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (!client || !IsClientInGame(client) || IsFakeClient(client) || GetClientTeam(client) != 2)
 		return;
 
 	if (g_bAutoModel && !g_bIgnoreOnce[client] && !IsPlayerAlive(client)) {
-		int bot = GetBotOfIdlePlayer(client);
-		if (!bot || !GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_bConnected", _, bot))
-			RequestFrame(NextFrame_PlayerSpawn, event.GetInt("userid"));
+		int team = CPlayerResource().m_iTeam(client);
+		if (team > 0 && team != 2) {
+			int bot = GetBotOfIdlePlayer(client);
+			if (!bot || !CPlayerResource().m_bConnected(bot))
+				SetLeastCharacter(client);//RequestFrame(NextFrame_PlayerSpawn, event.GetInt("userid"));
+		}
 	}
 
 	if (g_bCookie)
@@ -631,7 +652,7 @@ int GetIdlePlayerOfBot(int client) {
 	return GetClientOfUserId(GetEntProp(client, Prop_Send, "m_humanSpectatorUserID"));
 }
 
-void NextFrame_PlayerSpawn(int client) {
+stock void NextFrame_PlayerSpawn(int client) {
 	client = GetClientOfUserId(client);
 	if (!client || g_bIgnoreOnce[client])
 		return;
@@ -704,12 +725,13 @@ public void OnEntityCreated(int entity, const char[] classname) {
 }
 
 void PlayerSpawnPost(int client) {
-	if (GetClientTeam(client) == 2) {
-		SDKUnhook(client, SDKHook_SpawnPost, PlayerSpawnPost);
+	if (GetClientTeam(client) != 2)
+		return;
 
-		if (!g_bInTransition || g_iTransitioning[client] != 1)
-			RequestFrame(NextFrame_Player, GetClientUserId(client));
-	}
+	SDKUnhook(client, SDKHook_SpawnPost, PlayerSpawnPost);
+
+	if (!g_bInTransition || g_iTransitioning[client] != 1)
+		RequestFrame(NextFrame_Player, GetClientUserId(client));
 
 	g_iTransitioning[client] = -1;
 }
