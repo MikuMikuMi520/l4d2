@@ -28,6 +28,8 @@ ArrayList
 	g_aMeleeScripts;
 
 Handle
+	g_hSDK_TerrorNavMesh_GetLastCheckpoint,
+	g_hSDK_Checkpoint_GetLargestArea,
 	g_hSDK_NextBotCreatePlayerBot_Smoker,
 	g_hSDK_NextBotCreatePlayerBot_Boomer,
 	g_hSDK_NextBotCreatePlayerBot_Hunter,
@@ -784,14 +786,17 @@ int _CreateInfected(const char[] zombie, const float vPos[3], const float vAng[3
 		SetEntProp(ent, Prop_Data, "m_nNextThinkTick", RoundToNearest(GetGameTime() / GetTickInterval()) + 5);
 		TeleportEntity(ent, vPos, vAng, NULL_VECTOR);
 
-		if (pos != 6)
+		if (pos != 6) {
 			DispatchSpawn(ent);
+			ActivateEntity(ent);
+		}
 		else {
 			int m_nFallenSurvivor = LoadFromAddress(g_pZombieManager + view_as<Address>(g_iOff_m_nFallenSurvivors), NumberType_Int32);
 			float m_timestamp = view_as<float>(LoadFromAddress(g_pZombieManager + view_as<Address>(g_iOff_m_FallenSurvivorTimer) + view_as<Address>(8), NumberType_Int32));
 			StoreToAddress(g_pZombieManager + view_as<Address>(g_iOff_m_nFallenSurvivors), 0, NumberType_Int32);
 			StoreToAddress(g_pZombieManager + view_as<Address>(g_iOff_m_FallenSurvivorTimer) + view_as<Address>(8), view_as<int>(0.0), NumberType_Int32);
 			DispatchSpawn(ent);
+			ActivateEntity(ent);
 			StoreToAddress(g_pZombieManager + view_as<Address>(g_iOff_m_nFallenSurvivors), m_nFallenSurvivor + LoadFromAddress(g_pZombieManager + view_as<Address>(g_iOff_m_nFallenSurvivors), NumberType_Int32), NumberType_Int32);
 			StoreToAddress(g_pZombieManager + view_as<Address>(g_iOff_m_FallenSurvivorTimer) + view_as<Address>(8), view_as<int>(m_timestamp), NumberType_Int32);
 		}
@@ -1641,6 +1646,23 @@ void WarpAllSurToStartArea(int client) {
 }
 
 void WarpAllSurToCheckpoint(int client) {
+	if (g_hSDK_TerrorNavMesh_GetLastCheckpoint && g_hSDK_Checkpoint_GetLargestArea) {
+		Address pLastCheckpoint = SDKCall(g_hSDK_TerrorNavMesh_GetLastCheckpoint, L4D_GetPointer(POINTER_NAVMESH));
+		if (pLastCheckpoint) {
+			int navArea = SDKCall(g_hSDK_Checkpoint_GetLargestArea, pLastCheckpoint);
+			if (navArea) {
+				float vPos[3];
+				for (int i = 1; i <= MaxClients; i++) {
+					if (IsClientInGame(i) && GetClientTeam(i) == 2 && IsPlayerAlive(i)) {
+						L4D_FindRandomSpot(navArea, vPos);
+						TeleportEntity(i, vPos, NULL_VECTOR, NULL_VECTOR);
+					}
+				}
+				Miscell(client, g_iSelection[client]);
+				return;
+			}
+		}
+	}
 	ExecuteCommand("warp_all_survivors_to_checkpoint");
 	Miscell(client, g_iSelection[client]);
 }
@@ -2106,12 +2128,30 @@ void InitData() {
 		SetFailState("Failed to load \"%s.txt\" gamedata.", GAMEDATA);
 
 	g_iOff_m_nFallenSurvivors = hGameData.GetOffset("m_nFallenSurvivors");
-	if (g_iOff_m_nFallenSurvivors== -1)
+	if (g_iOff_m_nFallenSurvivors == -1)
 		SetFailState("Failed to find offset: m_nFallenSurvivors");
 
 	g_iOff_m_FallenSurvivorTimer = hGameData.GetOffset("m_FallenSurvivorTimer");
-	if (g_iOff_m_FallenSurvivorTimer== -1)
+	if (g_iOff_m_FallenSurvivorTimer == -1)
 		SetFailState("Failed to find offset: m_FallenSurvivorTimer");
+
+	StartPrepSDKCall(SDKCall_Raw);
+	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "TerrorNavMesh::GetLastCheckpoint"))
+		LogError("Failed to find signature: \"TerrorNavMesh::GetLastCheckpoint\"");
+	else {
+		PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+		if (!(g_hSDK_TerrorNavMesh_GetLastCheckpoint = EndPrepSDKCall()))
+			LogError("Failed to create SDKCall: \"TerrorNavMesh::GetLastCheckpoint\"");
+	}
+
+	StartPrepSDKCall(SDKCall_Raw);
+	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "Checkpoint::GetLargestArea"))
+		LogError("Failed to find signature: \"Checkpoint::GetLargestArea\"");
+	else {
+		PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+		if (!(g_hSDK_Checkpoint_GetLargestArea = EndPrepSDKCall()))
+			LogError("Failed to create SDKCall: \"Checkpoint::GetLargestArea\"");
+	}
 
 	Address pReplaceWithBot = hGameData.GetAddress("NextBotCreatePlayerBot.jumptable");
 	if (pReplaceWithBot != Address_Null && LoadFromAddress(pReplaceWithBot, NumberType_Int8) == 0x68)
