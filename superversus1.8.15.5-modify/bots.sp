@@ -336,7 +336,7 @@ public void OnPluginStart() {
 	g_cGiveType.AddChangeHook(CvarChanged_Weapon);
 	g_cGiveTime.AddChangeHook(CvarChanged_Weapon);
 	
-	//AutoExecConfig(true, "bots");
+	AutoExecConfig(true, "bots");
 
 	RegConsoleCmd("sm_teams",			cmdTeamPanel,	"团队菜单");
 	RegConsoleCmd("sm_spec",			cmdJoinTeam1,	"加入旁观者");
@@ -1196,7 +1196,7 @@ int TeleportToSurvivor(int client) {
 
 	if (target) {
 		SetEntProp(client, Prop_Send, "m_bDucked", 1);
-		SetEntProp(client, Prop_Send, "m_fFlags", GetEntProp(client, Prop_Send, "m_fFlags")|FL_DUCKING);
+		SetEntityFlags(client, GetEntityFlags(client)|FL_DUCKING);
 
 		float vPos[3];
 		GetClientAbsOrigin(target, vPos);
