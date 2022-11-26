@@ -18,6 +18,7 @@
 #define SI_SPITTER		3
 #define SI_JOCKEY		4
 #define SI_CHARGER		5
+#define SI_MAX_SIZE		6
 
 #define SPAWN_NO_PREFERENCE						-1
 #define SPAWN_ANYWHERE							0
@@ -39,29 +40,29 @@ Handle
 	g_hSuicideTimer;
 
 ConVar
-	g_cvSILimit,
-	g_cvSpawnSize,
-	g_cvSpawnLimits[6],
-	g_cvSpawnWeights[6],
-	g_cvScaleWeights,
-	g_cvSpawnTimeMode,
-	g_cvSpawnTimeMin,
-	g_cvSpawnTimeMax,
-	g_cvBaseLimit,
-	g_cvExtraLimit,
-	g_cvBaseSize,
-	g_cvExtraSize,
-	g_cvTankStatusAction,
-	g_cvTankStatusLimits,
-	g_cvTankStatusWeights,
-	g_cvSuicideTime,
-	g_cvRushDistance,
-	g_cvSpawnRangeMin,
-	g_cvSpawnRangeMax,
-	g_cvFirstSpawnTime,
-	g_cvSafeSpawnRange,
-	g_cvSpawnRange,
-	g_cvDiscardRange;
+	g_cSILimit,
+	g_cSpawnSize,
+	g_cSpawnLimits[SI_MAX_SIZE],
+	g_cSpawnWeights[SI_MAX_SIZE],
+	g_cScaleWeights,
+	g_cSpawnTimeMode,
+	g_cSpawnTimeMin,
+	g_cSpawnTimeMax,
+	g_cBaseLimit,
+	g_cExtraLimit,
+	g_cBaseSize,
+	g_cExtraSize,
+	g_cTankStatusAction,
+	g_cTankStatusLimits,
+	g_cTankStatusWeights,
+	g_cSuicideTime,
+	g_cRushDistance,
+	g_cSpawnRangeMin,
+	g_cSpawnRangeMax,
+	g_cFirstSpawnTime,
+	g_cSpawnRange,
+	g_cDiscardRange,
+	g_cSafeSpawnRange;
 
 float
 	g_fSpawnTimeMin,
@@ -75,7 +76,7 @@ float
 	g_fActionTimes[MAXPLAYERS + 1];
 
 static const char
-	g_sZombieClass[6][] = {
+	g_sZombieClass[SI_MAX_SIZE][] = {
 		"smoker",
 		"boomer",
 		"hunter",
@@ -88,12 +89,12 @@ int
 	g_iSILimit,
 	g_iSpawnSize,
 	g_iDirection,
-	g_iSpawnLimits[6],
-	g_iSpawnWeights[6],
+	g_iSpawnLimits[SI_MAX_SIZE],
+	g_iSpawnWeights[SI_MAX_SIZE],
 	g_iSpawnTimeMode,
 	g_iTankStatusAction,
 	g_iSILimitCache = -1,
-	g_iSpawnLimitsCache[6] = {	
+	g_iSpawnLimitsCache[SI_MAX_SIZE] = {	
 		-1,
 		-1,
 		-1,
@@ -101,7 +102,7 @@ int
 		-1,
 		-1
 	},
-	g_iSpawnWeightsCache[6] = {
+	g_iSpawnWeightsCache[SI_MAX_SIZE] = {
 		-1,
 		-1,
 		-1,
@@ -109,7 +110,7 @@ int
 		-1,
 		-1
 	},
-	g_iTankStatusLimits[6] = {	
+	g_iTankStatusLimits[SI_MAX_SIZE] = {	
 		-1,
 		-1,
 		-1,
@@ -117,7 +118,7 @@ int
 		-1,
 		-1
 	},
-	g_iTankStatusWeights[6] = {	
+	g_iTankStatusWeights[SI_MAX_SIZE] = {	
 		-1,
 		-1,
 		-1,
@@ -126,7 +127,7 @@ int
 		-1
 	},
 	g_iSpawnSizeCache = -1,
-	g_iSpawnCounts[6],
+	g_iSpawnCounts[SI_MAX_SIZE],
 	g_iBaseLimit,
 	g_iBaseSize,
 	g_iCurrentClass = -1;
@@ -151,71 +152,68 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 }
 
 public void OnPluginStart() {
-	g_cvSILimit	= 					CreateConVar("ss_si_limit",				"12",						"同时存在的最大特感数量", _, true, 1.0, true, 32.0);
-	g_cvSpawnSize = 				CreateConVar("ss_spawn_size",			"4",						"一次产生多少只特感", _, true, 1.0, true, 32.0);
-	g_cvSpawnLimits[SI_SMOKER] = 	CreateConVar("ss_smoker_limit",			"2",						"同时存在的最大smoker数量", _, true, 0.0, true, 32.0);
-	g_cvSpawnLimits[SI_BOOMER] = 	CreateConVar("ss_boomer_limit",			"2",						"同时存在的最大boomer数量", _, true, 0.0, true, 32.0);
-	g_cvSpawnLimits[SI_HUNTER] = 	CreateConVar("ss_hunter_limit",			"4",						"同时存在的最大hunter数量", _, true, 0.0, true, 32.0);
-	g_cvSpawnLimits[SI_SPITTER] = 	CreateConVar("ss_spitter_limit",		"2",						"同时存在的最大spitter数量", _, true, 0.0, true, 32.0);
-	g_cvSpawnLimits[SI_JOCKEY] = 	CreateConVar("ss_jockey_limit",			"4",						"同时存在的最大jockey数量", _, true, 0.0, true, 32.0);
-	g_cvSpawnLimits[SI_CHARGER] = 	CreateConVar("ss_charger_limit",		"4",						"同时存在的最大charger数量", _, true, 0.0, true, 32.0);
+	g_cSILimit	= 					CreateConVar("ss_si_limit",				"12",						"同时存在的最大特感数量", _, true, 1.0, true, 32.0);
+	g_cSpawnSize = 					CreateConVar("ss_spawn_size",			"4",						"一次产生多少只特感", _, true, 1.0, true, 32.0);
+	g_cSpawnLimits[SI_SMOKER] = 	CreateConVar("ss_smoker_limit",			"2",						"同时存在的最大smoker数量", _, true, 0.0, true, 32.0);
+	g_cSpawnLimits[SI_BOOMER] = 	CreateConVar("ss_boomer_limit",			"2",						"同时存在的最大boomer数量", _, true, 0.0, true, 32.0);
+	g_cSpawnLimits[SI_HUNTER] = 	CreateConVar("ss_hunter_limit",			"4",						"同时存在的最大hunter数量", _, true, 0.0, true, 32.0);
+	g_cSpawnLimits[SI_SPITTER] = 	CreateConVar("ss_spitter_limit",		"2",						"同时存在的最大spitter数量", _, true, 0.0, true, 32.0);
+	g_cSpawnLimits[SI_JOCKEY] = 	CreateConVar("ss_jockey_limit",			"4",						"同时存在的最大jockey数量", _, true, 0.0, true, 32.0);
+	g_cSpawnLimits[SI_CHARGER] = 	CreateConVar("ss_charger_limit",		"4",						"同时存在的最大charger数量", _, true, 0.0, true, 32.0);
 
-	g_cvSpawnWeights[SI_SMOKER] =	CreateConVar("ss_smoker_weight",		"100",						"smoker产生比重", _, true, 0.0);
-	g_cvSpawnWeights[SI_BOOMER] =	CreateConVar("ss_boomer_weight",		"200",						"boomer产生比重", _, true, 0.0);
-	g_cvSpawnWeights[SI_HUNTER] =	CreateConVar("ss_hunter_weight",		"100",						"hunter产生比重", _, true, 0.0);
-	g_cvSpawnWeights[SI_SPITTER] =	CreateConVar("ss_spitter_weight",		"200",						"spitter产生比重", _, true, 0.0);
-	g_cvSpawnWeights[SI_JOCKEY] =	CreateConVar("ss_jockey_weight",		"100",						"jockey产生比重", _, true, 0.0);
-	g_cvSpawnWeights[SI_CHARGER] =	CreateConVar("ss_charger_weight",		"100",						"charger产生比重", _, true, 0.0);
-	g_cvScaleWeights =				CreateConVar("ss_scale_weights",		"1",						"缩放相应特感的产生比重 [0 = 关闭 | 1 = 开启](开启后,总比重越大的越容易先刷出来, 动态控制特感刷出顺序)", _, true, 0.0, true, 1.0);
-	g_cvSpawnTimeMin =				CreateConVar("ss_time_min",				"10.0",						"特感的最小产生时间", _, true, 0.1);
-	g_cvSpawnTimeMax =				CreateConVar("ss_time_max",				"15.0",						"特感的最大产生时间", _, true, 1.0);
-	g_cvSpawnTimeMode =				CreateConVar("ss_time_mode",			"1",						"特感的刷新时间模式[0 = 随机 | 1 = 递增(杀的越快刷的越快) | 2 = 递减(杀的越慢刷的越快)]", _, true, 0.0, true, 2.0);
+	g_cSpawnWeights[SI_SMOKER] =	CreateConVar("ss_smoker_weight",		"100",						"smoker产生比重", _, true, 0.0);
+	g_cSpawnWeights[SI_BOOMER] =	CreateConVar("ss_boomer_weight",		"200",						"boomer产生比重", _, true, 0.0);
+	g_cSpawnWeights[SI_HUNTER] =	CreateConVar("ss_hunter_weight",		"100",						"hunter产生比重", _, true, 0.0);
+	g_cSpawnWeights[SI_SPITTER] =	CreateConVar("ss_spitter_weight",		"200",						"spitter产生比重", _, true, 0.0);
+	g_cSpawnWeights[SI_JOCKEY] =	CreateConVar("ss_jockey_weight",		"100",						"jockey产生比重", _, true, 0.0);
+	g_cSpawnWeights[SI_CHARGER] =	CreateConVar("ss_charger_weight",		"100",						"charger产生比重", _, true, 0.0);
+	g_cScaleWeights =				CreateConVar("ss_scale_weights",		"1",						"缩放相应特感的产生比重 [0 = 关闭 | 1 = 开启](开启后,总比重越大的越容易先刷出来, 动态控制特感刷出顺序)", _, true, 0.0, true, 1.0);
+	g_cSpawnTimeMin =				CreateConVar("ss_time_min",				"10.0",						"特感的最小产生时间", _, true, 0.1);
+	g_cSpawnTimeMax =				CreateConVar("ss_time_max",				"15.0",						"特感的最大产生时间", _, true, 1.0);
+	g_cSpawnTimeMode =				CreateConVar("ss_time_mode",			"1",						"特感的刷新时间模式[0 = 随机 | 1 = 递增(杀的越快刷的越快) | 2 = 递减(杀的越慢刷的越快)]", _, true, 0.0, true, 2.0);
 
-	g_cvBaseLimit =					CreateConVar("ss_base_limit",			"4",						"生还者团队不超过4人时有多少个特感", _, true, 0.0, true, 32.0);
-	g_cvExtraLimit =				CreateConVar("ss_extra_limit",			"1",						"生还者团队每增加一人可增加多少个特感", _, true, 0.0, true, 32.0);
-	g_cvBaseSize =					CreateConVar("ss_base_size",			"4",						"生还者团队不超过4人时一次产生多少只特感", _, true, 0.0, true, 32.0);
-	g_cvExtraSize =					CreateConVar("ss_extra_size",			"2",						"生还者团队每增加多少玩家人一次多产生一只特感", _, true, 1.0, true, 32.0);
-	g_cvTankStatusAction =			CreateConVar("ss_tankstatus_action",	"1",						"坦克产生后是否对当前刷特参数进行修改, 坦克死完后恢复?[0 = 忽略(保持原有的刷特状态) | 1 = 自定义]", _, true, 0.0, true, 1.0);
-	g_cvTankStatusLimits =			CreateConVar("ss_tankstatus_limits",	"2;1;4;1;4;4",				"坦克产生后每种特感数量的自定义参数");
-	g_cvTankStatusWeights =			CreateConVar("ss_tankstatus_weights",	"100;400;100;200;100;100",	"坦克产生后每种特感比重的自定义参数");
-	g_cvSuicideTime =				CreateConVar("ss_suicide_time",			"25.0",						"特感自动处死时间", _, true, 1.0);
-	g_cvRushDistance =				CreateConVar("ss_rush_distance",		"1500.0",					"路程超过多少算跑图(最前面的玩家路程减去最后面的玩家路程, 忽略倒地玩家)", _, true, 0.0);
+	g_cBaseLimit =					CreateConVar("ss_base_limit",			"4",						"生还者团队不超过4人时有多少个特感", _, true, 0.0, true, 32.0);
+	g_cExtraLimit =					CreateConVar("ss_extra_limit",			"1",						"生还者团队每增加一人可增加多少个特感", _, true, 0.0, true, 32.0);
+	g_cBaseSize =					CreateConVar("ss_base_size",			"4",						"生还者团队不超过4人时一次产生多少只特感", _, true, 0.0, true, 32.0);
+	g_cExtraSize =					CreateConVar("ss_extra_size",			"2",						"生还者团队每增加多少玩家人一次多产生一只特感", _, true, 1.0, true, 32.0);
+	g_cTankStatusAction =			CreateConVar("ss_tankstatus_action",	"1",						"坦克产生后是否对当前刷特参数进行修改, 坦克死完后恢复?[0 = 忽略(保持原有的刷特状态) | 1 = 自定义]", _, true, 0.0, true, 1.0);
+	g_cTankStatusLimits =			CreateConVar("ss_tankstatus_limits",	"2;1;4;1;4;4",				"坦克产生后每种特感数量的自定义参数");
+	g_cTankStatusWeights =			CreateConVar("ss_tankstatus_weights",	"100;400;100;200;100;100",	"坦克产生后每种特感比重的自定义参数");
+	g_cSuicideTime =				CreateConVar("ss_suicide_time",			"25.0",						"特感自动处死时间", _, true, 1.0);
+	g_cRushDistance =				CreateConVar("ss_rush_distance",		"1500.0",					"路程超过多少算跑图(最前面的玩家路程减去最后面的玩家路程, 忽略倒地玩家)", _, true, 0.0);
 
-	g_cvSpawnRangeMin =				CreateConVar("ss_spawnrange_min",		"100.0",					"特感最小生成距离", _, true, 0.0);
-	g_cvSpawnRangeMax =				CreateConVar("ss_spawnrange_max",		"1500.0",					"特感最大生成距离", _, true, 0.0);
+	g_cSpawnRangeMin =				CreateConVar("ss_spawnrange_min",		"100.0",					"特感最小生成距离", _, true, 0.0);
+	g_cSpawnRangeMax =				CreateConVar("ss_spawnrange_max",		"1500.0",					"特感最大生成距离", _, true, 0.0);
 
-	g_cvFirstSpawnTime = 			CreateConVar("ss_first_time",			"0.0",						"玩家离开安全区域后第一波特感的刷新时间", _, true, 0.0);
+	g_cFirstSpawnTime = 			CreateConVar("ss_first_time",			"0.0",						"玩家离开安全区域后第一波特感的刷新时间", _, true, 0.0);
 
-	g_cvSafeSpawnRange = FindConVar("z_safe_spawn_range");
-	g_cvSpawnRange = FindConVar("z_spawn_range");
-	
-	g_cvSpawnRange.Flags &= ~FCVAR_NOTIFY;
-	g_cvDiscardRange = FindConVar("z_discard_range");
-	g_cvDiscardRange.Flags &= ~FCVAR_NOTIFY;
+	g_cSpawnRange =					FindConVar("z_spawn_range");
+	g_cDiscardRange =				FindConVar("z_discard_range");
+	g_cSafeSpawnRange =				FindConVar("z_safe_spawn_range");
 
-	g_cvSpawnSize.AddChangeHook(CvarChanged_Limits);
-	for (int i; i < 6; i++) {
-		g_cvSpawnLimits[i].AddChangeHook(CvarChanged_Limits);
-		g_cvSpawnWeights[i].AddChangeHook(CvarChanged_General);
+	g_cSpawnSize.AddChangeHook(CvarChanged_Limits);
+	for (int i; i < SI_MAX_SIZE; i++) {
+		g_cSpawnLimits[i].AddChangeHook(CvarChanged_Limits);
+		g_cSpawnWeights[i].AddChangeHook(CvarChanged_General);
 	}
 
-	g_cvSILimit.AddChangeHook(CvarChanged_Times);
-	g_cvSpawnTimeMin.AddChangeHook(CvarChanged_Times);
-	g_cvSpawnTimeMax.AddChangeHook(CvarChanged_Times);
-	g_cvSpawnTimeMode.AddChangeHook(CvarChanged_Times);
+	g_cSILimit.AddChangeHook(CvarChanged_Times);
+	g_cSpawnTimeMin.AddChangeHook(CvarChanged_Times);
+	g_cSpawnTimeMax.AddChangeHook(CvarChanged_Times);
+	g_cSpawnTimeMode.AddChangeHook(CvarChanged_Times);
 
-	g_cvScaleWeights.AddChangeHook(CvarChanged_General);
-	g_cvBaseLimit.AddChangeHook(CvarChanged_General);
-	g_cvExtraLimit.AddChangeHook(CvarChanged_General);
-	g_cvBaseSize.AddChangeHook(CvarChanged_General);
-	g_cvExtraSize.AddChangeHook(CvarChanged_General);
-	g_cvSuicideTime.AddChangeHook(CvarChanged_General);
-	g_cvRushDistance.AddChangeHook(CvarChanged_General);
-	g_cvFirstSpawnTime.AddChangeHook(CvarChanged_General);
+	g_cScaleWeights.AddChangeHook(CvarChanged_General);
+	g_cBaseLimit.AddChangeHook(CvarChanged_General);
+	g_cExtraLimit.AddChangeHook(CvarChanged_General);
+	g_cBaseSize.AddChangeHook(CvarChanged_General);
+	g_cExtraSize.AddChangeHook(CvarChanged_General);
+	g_cSuicideTime.AddChangeHook(CvarChanged_General);
+	g_cRushDistance.AddChangeHook(CvarChanged_General);
+	g_cFirstSpawnTime.AddChangeHook(CvarChanged_General);
 
-	g_cvTankStatusAction.AddChangeHook(CvarChanged_TankStatus);
-	g_cvTankStatusLimits.AddChangeHook(CvarChanged_TankCustom);
-	g_cvTankStatusWeights.AddChangeHook(CvarChanged_TankCustom);
+	g_cTankStatusAction.AddChangeHook(CvarChanged_TankStatus);
+	g_cTankStatusLimits.AddChangeHook(CvarChanged_TankCustom);
+	g_cTankStatusWeights.AddChangeHook(CvarChanged_TankCustom);
 
 	//AutoExecConfig(true);
 
@@ -242,8 +240,8 @@ public void OnPluginStart() {
 }
 
 public void OnPluginEnd() {
-	g_cvSpawnRange.RestoreDefault();
-	g_cvDiscardRange.RestoreDefault();
+	g_cSpawnRange.RestoreDefault();
+	g_cDiscardRange.RestoreDefault();
 
 	//FindConVar("director_no_specials").RestoreDefault();
 
@@ -262,7 +260,7 @@ void OnFinaleStart(const char[] output, int caller, int activator, float delay) 
 }
 
 public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal) {
-	static int value;
+	static int val;
 	if (!g_bInSpawnTime) {
 		if (strcmp(key, "MaxSpecials", false) == 0 || strcmp(key, "cm_MaxSpecials", false) == 0) {
 			retVal = 0;
@@ -272,14 +270,14 @@ public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal) {
 		return Plugin_Continue;	
 	}
 	
-	value = retVal;
+	val = retVal;
 	if (strcmp(key, "MaxSpecials", false) == 0 || strcmp(key, "cm_MaxSpecials", false) == 0)
-		value = g_iSILimit;
+		val = g_iSILimit;
 	else if (strcmp(key, "PreferredSpecialDirection", false) == 0)
-		value = g_iDirection;
+		val = g_iDirection;
 
-	if (value != retVal) {
-		retVal = value;
+	if (val != retVal) {
+		retVal = val;
 		return Plugin_Handled;
 	}
 
@@ -292,46 +290,46 @@ public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client) {
 
 	g_bLeftSafeArea = true;
 
-	if (g_iCurrentClass >= 6) {
+	if (g_iCurrentClass >= SI_MAX_SIZE) {
 		PrintToChatAll("\x03当前轮换\x01: \n");
-		PrintToChatAll("\x01[\x05%s\x01]\x04模式\x01", g_sZombieClass[g_iCurrentClass - 6]);
+		PrintToChatAll("\x01[\x05%s\x01]\x04模式\x01", g_sZombieClass[g_iCurrentClass - SI_MAX_SIZE]);
 	}
 	else if (g_iCurrentClass > -1)
 		PrintToChatAll("\x01[\x05%s\x01]\x04模式\x01", g_sZombieClass[g_iCurrentClass]);
 
 	StartCustomSpawnTimer(g_fFirstSpawnTime);
 	delete g_hSuicideTimer;
-	g_hSuicideTimer = CreateTimer(2.0, tmrForceSuicide, _, TIMER_REPEAT);
+	g_hSuicideTimer = CreateTimer(2.5, tmrForceSuicide, _, TIMER_REPEAT);
 }
 
 Action tmrForceSuicide(Handle timer) {
 	static int i;
+	static int class;
 	static int victim;
-	static int zombieClass;
-	static float engineTime;
+	static float time;
 
-	engineTime = GetEngineTime();
+	time = GetEngineTime();
 	for (i = 1; i <= MaxClients; i++) {
 		if (!IsClientInGame(i) || !IsFakeClient(i) || GetClientTeam(i) != 3 || !IsPlayerAlive(i))
 			continue;
 
-		zombieClass = GetEntProp(i, Prop_Send, "m_zombieClass");
-		if (zombieClass < 1 || zombieClass > 6)
+		class = GetEntProp(i, Prop_Send, "m_zombieClass");
+		if (class < 1 || class > SI_MAX_SIZE)
 			continue;
 
 		if (GetEntProp(i, Prop_Send, "m_hasVisibleThreats")) {
-			g_fActionTimes[i] = engineTime;
+			g_fActionTimes[i] = time;
 			continue;
 		}
 
-		victim = GetSurVictim(i, zombieClass);
+		victim = GetSurVictim(i, class);
 		if (victim > 0) {
 			if (GetEntProp(victim, Prop_Send, "m_isIncapacitated"))
 				KillInactiveSI(i);
 			else
-				g_fActionTimes[i] = engineTime;
+				g_fActionTimes[i] = time;
 		}
-		else if (engineTime - g_fActionTimes[i] > g_fSuicideTime)
+		else if (time - g_fActionTimes[i] > g_fSuicideTime)
 			KillInactiveSI(i);
 	}
 
@@ -348,8 +346,8 @@ void KillInactiveSI(int client) {
 		CreateTimer(1.0, tmrRetrySpawn, true);
 }
 
-int GetSurVictim(int client, int zombieClass) {
-	switch (zombieClass) {
+int GetSurVictim(int client, int class) {
+	switch (class) {
 		case 1:
 			return GetEntPropEnt(client, Prop_Send, "m_tongueVictim");
 
@@ -360,13 +358,13 @@ int GetSurVictim(int client, int zombieClass) {
 			return GetEntPropEnt(client, Prop_Send, "m_jockeyVictim");
 
 		case 6: {
-			zombieClass = GetEntPropEnt(client, Prop_Send, "m_pummelVictim");
-			if (zombieClass > 0)
-				return zombieClass;
+			class = GetEntPropEnt(client, Prop_Send, "m_pummelVictim");
+			if (class > 0)
+				return class;
 
-			zombieClass = GetEntPropEnt(client, Prop_Send, "m_carryVictim");
-			if (zombieClass > 0)
-				return zombieClass;
+			class = GetEntPropEnt(client, Prop_Send, "m_carryVictim");
+			if (class > 0)
+				return class;
 		}
 	}
 
@@ -390,23 +388,23 @@ Action cmdSetLimit(int client, int args) {
 			char arg[16];
 			GetCmdArg(1, arg, sizeof arg);
 			if (strcmp(arg, "all", false) == 0) {
-				for (int i; i < 6; i++)
-					g_cvSpawnLimits[i].IntValue = limit;
+				for (int i; i < SI_MAX_SIZE; i++)
+					g_cSpawnLimits[i].IntValue = limit;
 
 				PrintToChatAll("\x01[SS] All SI limits have been set to \x05%d", limit);
 			} 
 			else if (strcmp(arg, "max", false) == 0) {
-				g_cvSILimit.IntValue = limit;
+				g_cSILimit.IntValue = limit;
 				PrintToChatAll("\x01[SS] -> \x04Max \x01SI limit set to \x05%i", limit);				   
 			} 
 			else if (strcmp(arg, "group", false) == 0 || strcmp(arg, "wave", false) == 0) {
-				g_cvSpawnSize.IntValue = limit;
+				g_cSpawnSize.IntValue = limit;
 				PrintToChatAll("\x01[SS] -> SI will spawn in \x04groups\x01 of \x05%i", limit);
 			} 
 			else  {
-				for (int i; i < 6; i++) {
+				for (int i; i < SI_MAX_SIZE; i++) {
 					if (strcmp(g_sZombieClass[i], arg, false) == 0) {
-						g_cvSpawnLimits[i].IntValue = limit;
+						g_cSpawnLimits[i].IntValue = limit;
 						PrintToChatAll("\x01[SS] \x04%s \x01limit set to \x05%i", arg, limit);
 					}
 				}
@@ -441,15 +439,15 @@ Action cmdSetWeight(int client, int args) {
 			GetCmdArg(1, arg, sizeof arg);
 			int iWeight = GetCmdArgInt(2);
 			if (strcmp(arg, "all", false) == 0) {
-				for (int i; i < 6; i++)
-					g_cvSpawnWeights[i].IntValue = iWeight;			
+				for (int i; i < SI_MAX_SIZE; i++)
+					g_cSpawnWeights[i].IntValue = iWeight;			
 
 				ReplyToCommand(client, "\x01[SS] -> \x04All spawn weights \x01set to \x05%d", iWeight);	
 			} 
 			else  {
-				for (int i; i < 6; i++) {
+				for (int i; i < SI_MAX_SIZE; i++) {
 					if (strcmp(arg, g_sZombieClass[i], false) == 0) {
-						g_cvSpawnWeights[i].IntValue = iWeight;
+						g_cSpawnWeights[i].IntValue = iWeight;
 						ReplyToCommand(client, "\x01[SS] \x04%s \x01weight set to \x05%d", g_sZombieClass[i], iWeight);				
 					}
 				}	
@@ -468,21 +466,21 @@ Action cmdSetWeight(int client, int args) {
 
 Action cmdSetTimer(int client, int args) {
 	if (args == 1) {
-		float fTime = GetCmdArgFloat(1);
-		if (fTime < 0.1)
-			fTime = 0.1;
+		float time = GetCmdArgFloat(1);
+		if (time < 0.1)
+			time = 0.1;
 
-		g_cvSpawnTimeMin.FloatValue = fTime;
-		g_cvSpawnTimeMax.FloatValue = fTime;
-		ReplyToCommand(client, "\x01[SS] Spawn timer set to constant \x05%.1f \x01seconds", fTime);
+		g_cSpawnTimeMin.FloatValue = time;
+		g_cSpawnTimeMax.FloatValue = time;
+		ReplyToCommand(client, "\x01[SS] Spawn timer set to constant \x05%.1f \x01seconds", time);
 	} 
 	else if (args == 2) {
-		float fMin = GetCmdArgFloat(1);
-		float fMax = GetCmdArgFloat(2);
-		if (fMin > 0.1 && fMax > 1.0 && fMax > fMin) {
-			g_cvSpawnTimeMin.FloatValue = fMin;
-			g_cvSpawnTimeMax.FloatValue = fMax;
-			ReplyToCommand(client, "\x01[SS] Spawn timer will be between \x05%.1f \x01and \x05%.1f \x01seconds", fMin, fMax);
+		float min = GetCmdArgFloat(1);
+		float max = GetCmdArgFloat(2);
+		if (min > 0.1 && max > 1.0 && max > min) {
+			g_cSpawnTimeMin.FloatValue = min;
+			g_cSpawnTimeMax.FloatValue = max;
+			ReplyToCommand(client, "\x01[SS] Spawn timer will be between \x05%.1f \x01and \x05%.1f \x01seconds", min, max);
 		} 
 		else 
 			ReplyToCommand(client, "[SS] Max(>= 1.0) spawn time must greater than min(>= 0.1) spawn time");
@@ -511,9 +509,9 @@ Action cmdForceTimer(int client, int args) {
 		return Plugin_Handled;
 	}
 
-	float fTime = GetCmdArgFloat(1);
-	StartCustomSpawnTimer(fTime < 0.1 ? 0.1 : fTime);
-	ReplyToCommand(client, "[SS] Spawn timer started manually. Next potential spawn in %.1f seconds.", fTime);
+	float time = GetCmdArgFloat(1);
+	StartCustomSpawnTimer(time < 0.1 ? 0.1 : time);
+	ReplyToCommand(client, "[SS] Spawn timer started manually. Next potential spawn in %.1f seconds.", time);
 	return Plugin_Handled;
 }
 
@@ -553,7 +551,7 @@ Action cmdType(int client, int args) {
 }
 
 int GetZombieClass(const char[] sClass) {
-	for (int i; i < 6; i++) {
+	for (int i; i < SI_MAX_SIZE; i++) {
 		if (strcmp(sClass, g_sZombieClass[i], false) == 0)
 			return i;
 	}
@@ -562,23 +560,21 @@ int GetZombieClass(const char[] sClass) {
 
 int SetRandomType() {
 	static int class;
-	static int value;
-	static int zombieClass[6] = {0, 1, 2, 3, 4, 5};
-	if (class == 0)
-		SortIntegers(zombieClass, 6, Sort_Random);
+	static int zombieClass[SI_MAX_SIZE] = {0, 1, 2, 3, 4, 5};
+
+	class %= SI_MAX_SIZE;
+	if (!class)
+		SortIntegers(zombieClass, sizeof zombieClass, Sort_Random);
 
 	SetSiType(zombieClass[class]);
-	g_iCurrentClass += 6;
-	value = class;
-
-	class++;
-	class -= RoundToFloor(class / 6.0) * 6;
-	return zombieClass[(value - RoundToFloor(value / 6.0) * 6)];
+	g_iCurrentClass += SI_MAX_SIZE;
+	return zombieClass[class++];
 }
 
 void SetSiType(int class) {
-	for (int i; i < 6; i++)		
-		g_cvSpawnLimits[i].IntValue = i != class ? 0 : g_iSILimit;
+	SaveConfiguration();
+	for (int i; i < SI_MAX_SIZE; i++)		
+		g_cSpawnLimits[i].IntValue = i != class ? 0 : g_iSILimit;
 
 	g_iCurrentClass = class;
 }
@@ -597,9 +593,9 @@ void CvarChanged_Limits(ConVar convar, const char[] oldValue, const char[] newVa
 }
 
 void GetCvars_Limits() {
-	g_iSpawnSize = g_cvSpawnSize.IntValue;
-	for (int i; i < 6; i++)
-		g_iSpawnLimits[i] = g_cvSpawnLimits[i].IntValue;
+	g_iSpawnSize = g_cSpawnSize.IntValue;
+	for (int i; i < SI_MAX_SIZE; i++)
+		g_iSpawnLimits[i] = g_cSpawnLimits[i].IntValue;
 }
 
 void CvarChanged_Times(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -607,10 +603,10 @@ void CvarChanged_Times(ConVar convar, const char[] oldValue, const char[] newVal
 }
 
 void GetCvars_Times() {
-	g_iSILimit =		g_cvSILimit.IntValue;
-	g_fSpawnTimeMin =	g_cvSpawnTimeMin.FloatValue;
-	g_fSpawnTimeMax =	g_cvSpawnTimeMax.FloatValue;
-	g_iSpawnTimeMode =	g_cvSpawnTimeMode.IntValue;
+	g_iSILimit =		g_cSILimit.IntValue;
+	g_fSpawnTimeMin =	g_cSpawnTimeMin.FloatValue;
+	g_fSpawnTimeMax =	g_cSpawnTimeMax.FloatValue;
+	g_iSpawnTimeMode =	g_cSpawnTimeMode.IntValue;
 
 	if (g_fSpawnTimeMin > g_fSpawnTimeMax)
 		g_fSpawnTimeMin = g_fSpawnTimeMax;
@@ -644,30 +640,30 @@ void CvarChanged_General(ConVar convar, const char[] oldValue, const char[] newV
 }
 
 void GetCvars_General() {
-	g_bScaleWeights =	g_cvScaleWeights.BoolValue;
+	g_bScaleWeights =	g_cScaleWeights.BoolValue;
 
-	for (int i; i < 6; i++)
-		g_iSpawnWeights[i] = g_cvSpawnWeights[i].IntValue;
+	for (int i; i < SI_MAX_SIZE; i++)
+		g_iSpawnWeights[i] = g_cSpawnWeights[i].IntValue;
 
-	g_iBaseLimit =		g_cvBaseLimit.IntValue;
-	g_fExtraLimit =		g_cvExtraLimit.FloatValue;
-	g_iBaseSize =		g_cvBaseSize.IntValue;
-	g_fExtraSize =		g_cvExtraSize.FloatValue;
-	g_fSuicideTime =	g_cvSuicideTime.FloatValue;
-	g_fRushDistance =	g_cvRushDistance.FloatValue;
-	g_fFirstSpawnTime =	g_cvFirstSpawnTime.FloatValue;
+	g_iBaseLimit =		g_cBaseLimit.IntValue;
+	g_fExtraLimit =		g_cExtraLimit.FloatValue;
+	g_iBaseSize =		g_cBaseSize.IntValue;
+	g_fExtraSize =		g_cExtraSize.FloatValue;
+	g_fSuicideTime =	g_cSuicideTime.FloatValue;
+	g_fRushDistance =	g_cRushDistance.FloatValue;
+	g_fFirstSpawnTime =	g_cFirstSpawnTime.FloatValue;
 }
 
 void CvarChanged_TankStatus(ConVar convar, const char[] oldValue, const char[] newValue) {
-	int lastValue = g_iTankStatusAction;
+	int last = g_iTankStatusAction;
 
 	GetCvars_TankStatus();
-	if (lastValue != g_iTankStatusAction)
+	if (last != g_iTankStatusAction)
 		TankStatusActoin(FindTank(-1));
 }
 
 void GetCvars_TankStatus() {
-	g_iTankStatusAction = g_cvTankStatusAction.IntValue;
+	g_iTankStatusAction = g_cTankStatusAction.IntValue;
 }
 
 void CvarChanged_TankCustom(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -676,46 +672,46 @@ void CvarChanged_TankCustom(ConVar convar, const char[] oldValue, const char[] n
 
 void GetCvars_TankCustom() {
 	char temp[64];
-	g_cvTankStatusLimits.GetString(temp, sizeof temp);
+	g_cTankStatusLimits.GetString(temp, sizeof temp);
 
-	char buffers[6][8];
+	char buffers[SI_MAX_SIZE][8];
 	ExplodeString(temp, ";", buffers, sizeof buffers, sizeof buffers[]);
-	
+
 	int i;
-	int value;
-	for (; i < 6; i++) {
+	int val;
+	for (; i < SI_MAX_SIZE; i++) {
 		if (buffers[i][0] == '\0') {
 			g_iTankStatusLimits[i] = -1;
 			continue;
 		}
 		
-		if ((value = StringToInt(buffers[i])) < -1 || value > g_iSILimit) {
+		if ((val = StringToInt(buffers[i])) < -1 || val > g_iSILimit) {
 			g_iTankStatusLimits[i] = -1;
 			buffers[i][0] = '\0';
 			continue;
 		}
 	
-		g_iTankStatusLimits[i] = value;
+		g_iTankStatusLimits[i] = val;
 		buffers[i][0] = '\0';
 	}
 	
-	g_cvTankStatusWeights.GetString(temp, sizeof temp);
+	g_cTankStatusWeights.GetString(temp, sizeof temp);
 	ExplodeString(temp, ";", buffers, sizeof buffers, sizeof buffers[]);
 	
-	for (i = 0; i < 6; i++) {
-		if (buffers[i][0] == '\0' || (value = StringToInt(buffers[i])) < 0) {
+	for (i = 0; i < SI_MAX_SIZE; i++) {
+		if (buffers[i][0] == '\0' || (val = StringToInt(buffers[i])) < 0) {
 			g_iTankStatusWeights[i] = -1;
 			continue;
 		}
 
-		g_iTankStatusWeights[i] = value;
+		g_iTankStatusWeights[i] = val;
 	}
 }
 
 void SetDirectorConvars() {
-	g_cvSafeSpawnRange.IntValue = g_cvSpawnRangeMin.IntValue;
-	g_cvSpawnRange.IntValue = g_cvSpawnRangeMax.IntValue;
-	g_cvDiscardRange.IntValue = g_cvSpawnRange.IntValue + 500;
+	g_cSpawnRange.IntValue = g_cSpawnRangeMax.IntValue;
+	g_cDiscardRange.IntValue = g_cSpawnRange.IntValue + 500;
+	g_cSafeSpawnRange.IntValue = g_cSpawnRangeMin.IntValue;
 
 	//FindConVar("director_no_specials").IntValue = 1;
 
@@ -730,7 +726,7 @@ void SetDirectorConvars() {
 public void OnClientDisconnect(int client) {
 	if (!client || !IsClientInGame(client) || GetClientTeam(client) != 3 || GetEntProp(client, Prop_Send, "m_zombieClass") != 8)
 		return;
-		
+
 	CreateTimer(0.1, tmrTankDisconnect, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
@@ -742,7 +738,7 @@ public void OnMapEnd() {
 	delete g_hSuicideTimer;
 	TankStatusActoin(false);
 
-	if (g_iCurrentClass >= 6)
+	if (g_iCurrentClass >= SI_MAX_SIZE)
 		SetRandomType();
 	else if (g_iCurrentClass > -1)
 		SetSiType(g_iCurrentClass);
@@ -803,8 +799,8 @@ void SetSpawnCount() {
 	if (limit == g_iSILimit && spawnSize == g_iSpawnSize)
 		return;
 
-	g_cvSILimit.IntValue = limit;
-	g_cvSpawnSize.IntValue = spawnSize;
+	g_cSILimit.IntValue = limit;
+	g_cSpawnSize.IntValue = spawnSize;
 	PrintToChatAll("\x01[\x05%d特\x01/\x05次\x01] \x05%d特 \x01[\x03%.1f\x01~\x03%.1f\x01]\x04秒", spawnSize <= limit ? spawnSize : limit, limit, g_fSpawnTimeMin, g_fSpawnTimeMax);
 }
 
@@ -839,7 +835,7 @@ Action tmrTankSpawn(Handle timer, int client) {
 
 	int totalLimit;
 	int totalWeight;
-	for (int i; i < 6; i++) {
+	for (int i; i < SI_MAX_SIZE; i++) {
 		totalLimit += g_iSpawnLimits[i];
 		totalWeight += g_iSpawnWeights[i];
 	}
@@ -848,6 +844,13 @@ Action tmrTankSpawn(Handle timer, int client) {
 		TankStatusActoin(true);
 
 	return Plugin_Continue;
+}
+
+void SaveConfiguration() {
+	for (int i; i < SI_MAX_SIZE; i++) {
+		g_iSpawnLimitsCache[i] = g_iSpawnLimits[i];
+		g_iSpawnWeightsCache[i] = g_iSpawnWeights[i];
+	}
 }
 
 void NextFrame_KickBot(any client) {
@@ -883,7 +886,7 @@ void TankStatusActoin(bool isTankAlive) {
 	else {
 		if (!loaded && g_iTankStatusAction) {
 			loaded = true;
-			for (int i; i < 6; i++) {
+			for (int i; i < SI_MAX_SIZE; i++) {
 				g_iSpawnLimitsCache[i] = g_iSpawnLimits[i];
 				g_iSpawnWeightsCache[i] = g_iSpawnWeights[i];
 			}
@@ -894,55 +897,55 @@ void TankStatusActoin(bool isTankAlive) {
 
 void LoadCacheSpawnLimits() {
 	if (g_iSILimitCache != -1) {
-		g_cvSILimit.IntValue = g_iSILimitCache;
+		g_cSILimit.IntValue = g_iSILimitCache;
 		g_iSILimitCache = -1;
 	}
 
 	if (g_iSpawnSizeCache != -1) {
-		g_cvSpawnSize.IntValue = g_iSpawnSizeCache;
+		g_cSpawnSize.IntValue = g_iSpawnSizeCache;
 		g_iSpawnSizeCache = -1;
 	}
 
-	for (int i; i < 6; i++) {		
+	for (int i; i < SI_MAX_SIZE; i++) {		
 		if (g_iSpawnLimitsCache[i] != -1) {
-			g_cvSpawnLimits[i].IntValue = g_iSpawnLimitsCache[i];
+			g_cSpawnLimits[i].IntValue = g_iSpawnLimitsCache[i];
 			g_iSpawnLimitsCache[i] = -1;
 		}
 	}
 }
 
 void LoadCacheSpawnWeights() {
-	for (int i; i < 6; i++) {		
+	for (int i; i < SI_MAX_SIZE; i++) {		
 		if (g_iSpawnWeightsCache[i] != -1) {
-			g_cvSpawnWeights[i].IntValue = g_iSpawnWeightsCache[i];
+			g_cSpawnWeights[i].IntValue = g_iSpawnWeightsCache[i];
 			g_iSpawnWeightsCache[i] = -1;
 		}
 	}
 }
 
 void LoadCacheTankCustom() {
-	for (int i; i < 6; i++) {
+	for (int i; i < SI_MAX_SIZE; i++) {
 		if (g_iTankStatusLimits[i] != -1)
-			g_cvSpawnLimits[i].IntValue = g_iTankStatusLimits[i];
+			g_cSpawnLimits[i].IntValue = g_iTankStatusLimits[i];
 			
 		if (g_iTankStatusWeights[i] != -1)
-			g_cvSpawnWeights[i].IntValue = g_iTankStatusWeights[i];
+			g_cSpawnWeights[i].IntValue = g_iTankStatusWeights[i];
 	}
 }
 
 void ResetLimits() {
-	for (int i; i < 6; i++)
-		g_cvSpawnLimits[i].RestoreDefault();
+	for (int i; i < SI_MAX_SIZE; i++)
+		g_cSpawnLimits[i].RestoreDefault();
 }
 
 void ResetWeights() {
-	for (int i; i < 6; i++)
-		g_cvSpawnWeights[i].RestoreDefault();
+	for (int i; i < SI_MAX_SIZE; i++)
+		g_cSpawnWeights[i].RestoreDefault();
 }
 
-void StartCustomSpawnTimer(float fTime) {
+void StartCustomSpawnTimer(float time) {
 	EndSpawnTimer();
-	g_hSpawnTimer = CreateTimer(fTime, tmrSpawnSpecial);
+	g_hSpawnTimer = CreateTimer(time, tmrSpawnSpecial);
 }
 
 void StartSpawnTimer() {
@@ -1031,22 +1034,26 @@ void ExecuteSpawnQueue(int totalSI, bool retry) {
 
 	delete aList;
 	g_bInSpawnTime = true;
-	//g_cvSpawnRange.IntValue = retry ? 1000 : 1500;
+	//g_cSpawnRange.IntValue = retry ? 1000 : 1500;
 	g_iDirection = g_bFinaleStarted ? SPAWN_NEAR_IT_VICTIM : (!retry ? SPAWN_NO_PREFERENCE : (!find ? SPAWN_LARGE_VOLUME/*SPAWN_SPECIALS_ANYWHERE*/ : SPAWN_IN_FRONT_OF_SURVIVORS));
 
 	count = 0;
 	find = false;
+	int zombie;
 	float vPos[3];
 	for (i = 0; i < spawnSize; i++) {
 		index = aQueue.Get(i) + 1;
 		if (L4D_GetRandomPZSpawnPosition(client, index, 10, vPos))
 			find = true;
 
-		vPos[2] += 20.0;
-		if (find && L4D2_SpawnSpecial(index, vPos, NULL_VECTOR) > 0)
+		vPos[2] += 5.0;
+		if (find && (zombie = L4D2_SpawnSpecial(index, vPos, NULL_VECTOR)) > 0) {
+			SetEntProp(zombie, Prop_Send, "m_bDucked", 1);
+			SetEntityFlags(zombie, GetEntityFlags(client)|FL_DUCKING);
 			count++;
+		}
 
-		vPos[2] -= 20.0;
+		vPos[2] -= 5.0;
 	}
 
 	g_bInSpawnTime = false;
@@ -1098,7 +1105,7 @@ int GetTotalSI() {
 
 void GetSITypeCount() {
 	int i;
-	for (; i < 6; i++)
+	for (; i < SI_MAX_SIZE; i++)
 		g_iSpawnCounts[i] = 0;
 
 	for (i = 1; i <= MaxClients; i++) {
@@ -1131,21 +1138,21 @@ int GenerateIndex() {
 	static int i;
 	static int totalWeight;
 	static int standardizedWeight;
-	static int tempWeights[6];
+	static int tempWeights[SI_MAX_SIZE];
 	static float unit;
 	static float random;
-	static float intervalEnds[6];
+	static float intervalEnds[SI_MAX_SIZE];
 
 	totalWeight = 0;
 	standardizedWeight = 0;
 
-	for (i = 0; i < 6; i++) {
+	for (i = 0; i < SI_MAX_SIZE; i++) {
 		tempWeights[i] = g_iSpawnCounts[i] < g_iSpawnLimits[i] ? (g_bScaleWeights ? ((g_iSpawnLimits[i] - g_iSpawnCounts[i]) * g_iSpawnWeights[i]) : g_iSpawnWeights[i]) : 0;
 		totalWeight += tempWeights[i];
 	}
 
 	unit = 1.0 / totalWeight;
-	for (i = 0; i < 6; i++) {
+	for (i = 0; i < SI_MAX_SIZE; i++) {
 		if (tempWeights[i] >= 0) {
 			standardizedWeight += tempWeights[i];
 			intervalEnds[i] = standardizedWeight * unit;
@@ -1153,7 +1160,7 @@ int GenerateIndex() {
 	}
 
 	random = Math_GetRandomFloat(0.0, 1.0);
-	for (i = 0; i < 6; i++) {
+	for (i = 0; i < SI_MAX_SIZE; i++) {
 		if (tempWeights[i] > 0 && intervalEnds[i] >= random)
 			return i;
 	}
@@ -1162,16 +1169,6 @@ int GenerateIndex() {
 }
 
 // https://github.com/bcserv/smlib/blob/transitional_syntax/scripting/include/smlib/math.inc
-/**
- * Returns a random, uniform Float number in the specified (inclusive) range.
- * This is safe to use multiple times in a function.
- * The seed is set automatically for each plugin.
- *
- * @param min			Min value used as lower border
- * @param max			Max value used as upper border
- * @return				Random Float number between min and max
- */
-float Math_GetRandomFloat(float min, float max)
-{
+float Math_GetRandomFloat(float min, float max) {
 	return (GetURandomFloat() * (max  - min)) + min;
 }
