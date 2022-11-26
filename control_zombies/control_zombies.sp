@@ -18,7 +18,7 @@
 #define PLUGIN_NAME				"Control Zombies In Co-op"
 #define PLUGIN_AUTHOR			"sorallll"
 #define PLUGIN_DESCRIPTION		""
-#define PLUGIN_VERSION			"3.5.2"
+#define PLUGIN_VERSION			"3.5.3"
 #define PLUGIN_URL				"https://steamcommunity.com/id/sorallll"
 
 #define GAMEDATA 				"control_zombies"
@@ -1940,7 +1940,7 @@ enum
 };
 
 void CreateSurGlow(int client) {
-	if (!g_bGlowColorEnable || OnEndScenario() || !IsClientInGame(client) || IsClientInKickQueue(client) || GetClientTeam(client) != 2 || !IsPlayerAlive(client) || IsValidEntRef(g_ePlayer[client].ModelEntRef))
+	if (!g_bGlowColorEnable || !IsClientInGame(client) || IsClientInKickQueue(client) || GetClientTeam(client) != 2 || !IsPlayerAlive(client) || IsValidEntRef(g_ePlayer[client].ModelEntRef))
 		return;
 
 	int iEnt = CreateEntityByName("prop_dynamic_ornament");
