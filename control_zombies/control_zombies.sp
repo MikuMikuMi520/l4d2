@@ -1063,7 +1063,7 @@ void DisplayClassMenu(int client) {
 int DisplayClass_MenuHandler(Menu menu, MenuAction action, int param1, int param2) {
 	switch (action) {
 		case MenuAction_Select: {
-			if (param2 == 0 && GetClientTeam(param1) == 3 && !IsFakeClient(param1) && IsPlayerAlive(param1) && GetEntProp(param1, Prop_Send, "m_isGhost", 1))
+			if (param2 == 0 && !IsFakeClient(param1) && GetClientTeam(param1) == 3 && IsPlayerAlive(param1) && GetEntProp(param1, Prop_Send, "m_isGhost", 1))
 				SelectClassMenu(param1);
 		}
 	
@@ -1095,7 +1095,7 @@ int SelectClass_MenuHandler(Menu menu, MenuAction action, int param1, int param2
 	switch (action) {
 		case MenuAction_Select: {
 			int zombieClass;
-			if (GetClientTeam(param1) == 3 && !IsFakeClient(param1) && IsPlayerAlive(param1) && (zombieClass = GetEntProp(param1, Prop_Send, "m_zombieClass")) != 8 && GetEntProp(param1, Prop_Send, "m_isGhost", 1)) {
+			if (!IsFakeClient(param1) && GetClientTeam(param1) == 3 && IsPlayerAlive(param1) && (zombieClass = GetEntProp(param1, Prop_Send, "m_zombieClass")) != 8 && GetEntProp(param1, Prop_Send, "m_isGhost", 1)) {
 				char item[2];
 				menu.GetItem(param2, item, sizeof item);
 				int class = StringToInt(item);
@@ -1109,13 +1109,6 @@ int SelectClass_MenuHandler(Menu menu, MenuAction action, int param1, int param2
 	}
 
 	return 0;
-}
-
-void SetClassAndPunish(int client, int zombieClass) {
-	L4D_SetClass(client, zombieClass);
-	if (g_fPZPunishHealth)
-		SetEntityHealth(client, RoundToCeil(GetClientHealth(client) * g_fPZPunishHealth));
-	g_ePlayer[client].ClassCmdUsed = true;
 }
 
 int GetZombieClass(const char[] sClass) {
@@ -1166,16 +1159,29 @@ public void OnPlayerRunCmdPost(int client) {
 
 	if (GetEntProp(client, Prop_Send, "m_isGhost", 1)) {
 		if (!g_ePlayer[client].Materialized && CheckClientAccess(client, 5))
-			SelectAscendingClass(client);
+			SetClassAndPunish(client, GetNextClass(client));
 	}
 	else if (CheckClientAccess(client, 6))
 		SetNextActivationTime(client, 0.1); // 管理员鼠标中键重置技能冷却
 }
 
-void SelectAscendingClass(int client) {
+bool SetClassAndPunish(int client, int class) {
+	if (class < 1 || class > 6)
+		return false;
+
+	L4D_SetClass(client, class);
+	if (g_fPZPunishHealth)
+		SetEntityHealth(client, RoundToCeil(GetClientHealth(client) * g_fPZPunishHealth));
+	g_ePlayer[client].ClassCmdUsed = true;
+	return true;
+}
+
+int GetNextClass(int client) {
 	int zombieClass = GetEntProp(client, Prop_Send, "m_zombieClass");
-	if (zombieClass != 8)
-		SetClassAndPunish(client, zombieClass % SI_MAX_SIZE + 1);
+	if (zombieClass < 1 || zombieClass > 6)
+		return -1;
+
+	return zombieClass % SI_MAX_SIZE + 1;
 }
 
 // https://forums.alliedmods.net/showthread.php?p=1542365
@@ -1412,7 +1418,7 @@ void Event_GhostSpawnTime(Event event, const char[] name, bool dontBroadcast) {
 		return;
 
 	if (g_iPZPunishTime > 0 && g_ePlayer[client].ClassCmdUsed)
-		SDKCall(g_hSDK_CTerrorPlayer_SetBecomeGhostAt, client, GetGameTime() + L4D_GetPlayerSpawnTime(client) + float(g_iPZPunishTime));
+		SDKCall(g_hSDK_CTerrorPlayer_SetBecomeGhostAt, client, GetGameTime() + float(event.GetInt("spawntime") + g_iPZPunishTime)); // left4dhooks-v1.123 L4D_SetBecomeGhostAt(client, GetGameTime() + float(event.GetInt("spawntime") + g_iPZPunishTime));
 }
 
 void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast) {
