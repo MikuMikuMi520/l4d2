@@ -208,6 +208,8 @@ public void OnPluginStart() {
 	g_cSbAllBotGame =	FindConVar("sb_all_bot_game");
 	g_cAllowAllBotSur =	FindConVar("allow_all_bot_survivor_team");
 	g_cSurvivorMaxInc =	FindConVar("survivor_max_incapacitated_count");
+	FindConVar("z_max_player_zombies").SetBounds(ConVarBound_Upper, true, float(MaxClients));
+
 	g_cGameMode.AddChangeHook(CvarChanged_Mode);
 	g_cSbAllBotGame.AddChangeHook(CvarChanged);
 	g_cAllowAllBotSur.AddChangeHook(CvarChanged);
@@ -1372,7 +1374,7 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
 	int client = GetClientOfUserId(userid);
 	if (!client || !IsClientInGame(client) || !IsPlayerAlive(client))
 		return;
-	
+
 	g_ePlayer[client].TankBot = 0;
 
 	if (g_bOnPassPlayerTank)
@@ -1785,6 +1787,9 @@ int GetPendingPlayer() {
 
 			case 3: {
 				if (IsPlayerAlive(client) && GetEntProp(client, Prop_Send, "m_zombieClass") == 8)
+					continue;
+
+				if (GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_pendingTankPlayerIndex") == client)
 					continue;
 			
 				if (g_ePlayer[client].IsPlayerPB) {
@@ -2491,25 +2496,14 @@ bool OnEndScenario() {
 }
 
 int TakeOverZombieBot(int client, int target) {
-	bool onfire = GetEntityFlags(target) & FL_ONFIRE != 0;
 	int m_iHealth = GetEntProp(target, Prop_Data, "m_iHealth");
 	int m_iMaxHealth = GetEntProp(target, Prop_Data, "m_iMaxHealth");
 	if (IsPlayerAlive(client) && !GetEntProp(client, Prop_Send, "m_isGhost", 1))
 		L4D_ReplaceWithBot(client);
 
-	AcceptEntityInput(client, "ClearParent");
 	L4D_TakeOverZombieBot(client, target);
 	SetEntProp(client, Prop_Data, "m_iHealth", m_iHealth);
 	SetEntProp(client, Prop_Data, "m_iMaxHealth", m_iMaxHealth);
-	if (onfire) {
-		int flame = GetEntPropEnt(target, Prop_Send, "m_hEffectEntity");
-		if (flame != -1) {
-			float time = GetEntPropFloat(flame, Prop_Data, "m_flLifetime") - GetGameTime();
-			if (time > 0.0)
-				IgniteEntity(client, time);
-		}
-	}
-
 	return GetEntProp(client, Prop_Send, "m_zombieClass");
 }
 
