@@ -240,19 +240,57 @@ public void OnPluginStart() {
 }
 
 public void OnPluginEnd() {
-	g_cSpawnRange.RestoreDefault();
-	g_cDiscardRange.RestoreDefault();
+	TweakSettings(true);
+}
 
-	//FindConVar("director_no_specials").RestoreDefault();
+void TweakSettings(bool restore) {
+	if (!restore) {
+		FindConVar("z_max_player_zombies").SetBounds(ConVarBound_Upper, true, float(MaxClients));
+		FindConVar("z_max_player_zombies").SetFloat(float(MaxClients));
+		FindConVar("z_minion_limit").SetInt(MaxClients);
+		FindConVar("survival_max_specials").SetInt(MaxClients);
 
-	FindConVar("z_spawn_flow_limit").RestoreDefault();
-	FindConVar("z_attack_flow_range").RestoreDefault();
+		FindConVar("z_smoker_limit").SetInt(0);
+		FindConVar("z_boomer_limit").SetInt(0);
+		FindConVar("z_hunter_limit").SetInt(0);
+		FindConVar("z_spitter_limit").SetInt(0);
+		FindConVar("z_jockey_limit").SetInt(0);
+		FindConVar("z_charger_limit").SetInt(0);
 
-	FindConVar("z_safe_spawn_range").RestoreDefault();
-	FindConVar("z_spawn_safety_range").RestoreDefault();
+		FindConVar("survival_max_smokers").SetInt(0);
+		FindConVar("survival_max_boomers").SetInt(0);
+		FindConVar("survival_max_hunters").SetInt(0);
+		FindConVar("survival_max_spitters").SetInt(0);
+		FindConVar("survival_max_jockeys").SetInt(0);
+		FindConVar("survival_max_chargers").SetInt(0);
 
-	FindConVar("z_finale_spawn_safety_range").RestoreDefault();
-	FindConVar("z_finale_spawn_tank_safety_range").RestoreDefault();
+		g_cSpawnRange.SetInt(g_cSpawnRangeMax.IntValue);
+		g_cDiscardRange.SetInt(g_cSpawnRange.IntValue + 500);
+		g_cSafeSpawnRange.SetInt(g_cSpawnRangeMin.IntValue);
+	}
+	else {
+		//FindConVar("z_max_player_zombies").RestoreDefault();
+		FindConVar("z_minion_limit").RestoreDefault();
+		FindConVar("survival_max_specials").RestoreDefault();
+
+		FindConVar("z_smoker_limit").RestoreDefault();
+		FindConVar("z_boomer_limit").RestoreDefault();
+		FindConVar("z_hunter_limit").RestoreDefault();
+		FindConVar("z_spitter_limit").RestoreDefault();
+		FindConVar("z_jockey_limit").RestoreDefault();
+		FindConVar("z_charger_limit").RestoreDefault();
+
+		FindConVar("survival_max_smokers").RestoreDefault();
+		FindConVar("survival_max_boomers").RestoreDefault();
+		FindConVar("survival_max_hunters").RestoreDefault();
+		FindConVar("survival_max_spitters").RestoreDefault();
+		FindConVar("survival_max_jockeys").RestoreDefault();
+		FindConVar("survival_max_chargers").RestoreDefault();
+
+		g_cSpawnRange.RestoreDefault();
+		g_cDiscardRange.RestoreDefault();
+		g_cSafeSpawnRange.RestoreDefault();
+	}
 }
 
 void OnFinaleStart(const char[] output, int caller, int activator, float delay) {
@@ -260,24 +298,16 @@ void OnFinaleStart(const char[] output, int caller, int activator, float delay) 
 }
 
 public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal) {
-	static int val;
-	if (!g_bInSpawnTime) {
-		if (strcmp(key, "MaxSpecials", false) == 0 || strcmp(key, "cm_MaxSpecials", false) == 0) {
-			retVal = 0;
-			return Plugin_Handled;
-		}
-
+	if (!g_bInSpawnTime)
 		return Plugin_Continue;	
-	}
-	
-	val = retVal;
-	if (strcmp(key, "MaxSpecials", false) == 0 || strcmp(key, "cm_MaxSpecials", false) == 0)
-		val = g_iSILimit;
-	else if (strcmp(key, "PreferredSpecialDirection", false) == 0)
-		val = g_iDirection;
 
-	if (val != retVal) {
-		retVal = val;
+	if (!strcmp(key, "PreferredSpecialDirection", false)) {
+		retVal = g_iDirection;
+		return Plugin_Handled;
+	}
+
+	if (!strcmp(key, "MaxSpecials", false) || !strcmp(key, "cm_MaxSpecials", false)) {
+		retVal = g_iSILimit;
 		return Plugin_Handled;
 	}
 
@@ -585,7 +615,7 @@ public void OnConfigsExecuted() {
 	GetCvars_General();
 	GetCvars_TankStatus();
 	GetCvars_TankCustom();
-	SetDirectorConvars();
+	TweakSettings(false);
 }
 
 void CvarChanged_Limits(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -684,20 +714,20 @@ void GetCvars_TankCustom() {
 			g_iTankStatusLimits[i] = -1;
 			continue;
 		}
-		
+
 		if ((val = StringToInt(buffers[i])) < -1 || val > g_iSILimit) {
 			g_iTankStatusLimits[i] = -1;
 			buffers[i][0] = '\0';
 			continue;
 		}
-	
+
 		g_iTankStatusLimits[i] = val;
 		buffers[i][0] = '\0';
 	}
-	
+
 	g_cTankStatusWeights.GetString(temp, sizeof temp);
 	ExplodeString(temp, ";", buffers, sizeof buffers, sizeof buffers[]);
-	
+
 	for (i = 0; i < SI_MAX_SIZE; i++) {
 		if (buffers[i][0] == '\0' || (val = StringToInt(buffers[i])) < 0) {
 			g_iTankStatusWeights[i] = -1;
@@ -706,21 +736,6 @@ void GetCvars_TankCustom() {
 
 		g_iTankStatusWeights[i] = val;
 	}
-}
-
-void SetDirectorConvars() {
-	g_cSpawnRange.IntValue = g_cSpawnRangeMax.IntValue;
-	g_cDiscardRange.IntValue = g_cSpawnRange.IntValue + 500;
-	g_cSafeSpawnRange.IntValue = g_cSpawnRangeMin.IntValue;
-
-	//FindConVar("director_no_specials").IntValue = 1;
-
-	FindConVar("z_spawn_flow_limit").IntValue = 999999;
-	FindConVar("z_attack_flow_range").IntValue = 999999;
-
-	FindConVar("z_spawn_safety_range").IntValue = 1;
-	FindConVar("z_finale_spawn_safety_range").IntValue = 1;
-	FindConVar("z_finale_spawn_tank_safety_range").IntValue = 1;
 }
 
 public void OnClientDisconnect(int client) {
