@@ -297,7 +297,7 @@ void PluginStateChanged() {
 							CreateSurGlow(i);
 
 						case 3: {
-							if (!IsFakeClient(i) && IsPlayerAlive(i))
+							if (g_iPZSuicideTime > 0 && !IsFakeClient(i) && IsPlayerAlive(i))
 								g_ePlayer[i].SuicideStart = time;
 						}
 					}
@@ -1508,7 +1508,8 @@ Action tmrPlayerStatus(Handle timer) {
 
 				if (!g_bLeftSafeArea) {
 					// 生还未离开安全区域则重置处死时间
-					g_ePlayer[i].SuicideStart = time;
+					if (g_iPZSuicideTime > 0)
+						g_ePlayer[i].SuicideStart = time;
 					continue;
 				}
 
