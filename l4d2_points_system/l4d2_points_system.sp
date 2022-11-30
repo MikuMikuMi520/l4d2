@@ -3032,12 +3032,9 @@ int iInfectedConfirmMenuHandler(Menu menu, MenuAction action, int param1, int pa
 								if (class) {
 									L4D_State_Transition(param1, STATE_GHOST);
 									L4D_SetClass(param1, class);
-									if (!IsPlayerAlive(param1) || !GetEntProp(param1, Prop_Send, "m_isGhost", 1) || GetEntProp(param1, Prop_Send, "m_zombieClass") != class) {
-										StrCat(arg, sizeof arg, " auto");
-										CheatCommandEx(param1, cmd, arg);
-										if (!IsPlayerAlive(param1) || GetEntProp(param1, Prop_Send, "m_zombieClass") != class)\
-											return 0;
-									}
+									if (!IsPlayerAlive(param1) || !GetEntProp(param1, Prop_Send, "m_isGhost", 1) || GetEntProp(param1, Prop_Send, "m_zombieClass") != class)
+										return 0;
+
 									strcopy(g_ePlayer[param1].Bought, sizeof Player::Bought, g_ePlayer[param1].Command);
 									g_ePlayer[param1].BoughtCost = g_ePlayer[param1].ItemCost;
 									RemovePoints(param1, g_ePlayer[param1].ItemCost);
