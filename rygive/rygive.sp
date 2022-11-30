@@ -8,7 +8,7 @@
 #define PLUGIN_NAME				"Give Item Menu"
 #define PLUGIN_AUTHOR			"sorallll"
 #define PLUGIN_DESCRIPTION		"多功能插件"
-#define PLUGIN_VERSION			"1.2.2"
+#define PLUGIN_VERSION			"1.2.3"
 #define PLUGIN_URL				""
 
 #define GAMEDATA				"rygive"
@@ -2067,12 +2067,21 @@ void ReloadAmmo(int client) {
 
 	char cls[32];
 	GetEntityClassname(weapon, cls, sizeof cls);
-	if (strcmp(cls[7], "grenade_launcher") == 0) {
-		static ConVar cv;
-		if (!cv)
-			cv = FindConVar("ammo_grenadelauncher_max");
+	if (strcmp(cls, "weapon_rifle_m60") == 0) {
+		static ConVar cM60;
+		if (!cM60)
+			cM60 = FindConVar("ammo_m60_max");
 
-		SetEntProp(client, Prop_Send, "m_iAmmo", cv.IntValue, _, m_iPrimaryAmmoType);
+		SetEntProp(weapon, Prop_Send, "m_iClip1", L4D2_GetIntWeaponAttribute(cls, L4D2IWA_ClipSize));
+		SetEntProp(client, Prop_Send, "m_iAmmo", cM60.IntValue, _, m_iPrimaryAmmoType);
+	}
+	else if (strcmp(cls, "weapon_grenade_launcher") == 0) {
+		static ConVar cGrenadelau;
+		if (!cGrenadelau)
+			cGrenadelau = FindConVar("ammo_grenadelauncher_max");
+
+		SetEntProp(weapon, Prop_Send, "m_iClip1", L4D2_GetIntWeaponAttribute(cls, L4D2IWA_ClipSize));
+		SetEntProp(client, Prop_Send, "m_iAmmo", cGrenadelau.IntValue, _, m_iPrimaryAmmoType);
 	}
 }
 
