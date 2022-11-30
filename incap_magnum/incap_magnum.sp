@@ -3,23 +3,27 @@
 #include <sourcemod>
 #include <sourcescramble>
 
-#define GAMEDATA	"incap_magnum"
+#define PLUGIN_NAME				"Incapped Magnum"
+#define PLUGIN_AUTHOR			"sorallll"
+#define PLUGIN_DESCRIPTION		""
+#define PLUGIN_VERSION			"1.0.2"
+#define PLUGIN_URL				"https://steamcommunity.com/id/sorallll"
 
-public Plugin myinfo =
-{
-	name = "Incapped Magnum",
-	author = "sorallll",
-	version	= "1.0.2",
-	description	= "将倒地武器修改为Magnum",
-	url = "https://github.com/umlka/l4d2/tree/main/incap_magnum"
+#define GAMEDATA				"incap_magnum"
+
+public Plugin myinfo = {
+	name = PLUGIN_NAME,
+	author = PLUGIN_AUTHOR,
+	description = PLUGIN_DESCRIPTION,
+	version = PLUGIN_VERSION,
+	url = PLUGIN_URL
 };
 
-public void OnPluginStart()
-{
-	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, sizeof sPath, "gamedata/%s.txt", GAMEDATA);
-	if (!FileExists(sPath))
-		SetFailState("\n==========\nMissing required file: \"%s\".\n==========", sPath);
+public void OnPluginStart() {
+	char buffer[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, buffer, sizeof buffer, "gamedata/%s.txt", GAMEDATA);
+	if (!FileExists(buffer))
+		SetFailState("\n==========\nMissing required file: \"%s\".\n==========", buffer);
 
 	GameData hGameData = new GameData(GAMEDATA);
 	if (!hGameData)
