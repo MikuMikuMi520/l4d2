@@ -64,8 +64,7 @@ bool
 	g_bRestoringBots,
 	g_bBotPlayer[MAXPLAYERS + 1],
 	g_bPlayerBot[MAXPLAYERS + 1],
-	g_bFirstSpawn[MAXPLAYERS + 1],
-	g_bTeamChanged[MAXPLAYERS + 1];
+	g_bFirstSpawn[MAXPLAYERS + 1];
 
 static const char
 	g_sSurNames[][] = {
@@ -564,7 +563,6 @@ void Event_RoundStart(Event event, char[] name, bool dontBroadcast) {
 	for (int i; i <= MaxClients; i++) {
 		g_bBotPlayer[i] = false;
 		g_bPlayerBot[i] = false;
-		g_bTeamChanged[i] = false;
 	}
 }
 
@@ -613,14 +611,11 @@ void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast) {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (!client || !IsClientInGame(client) || IsFakeClient(client))
 		return;
-
+	
 	if (event.GetInt("team") == 2) {
-		if (event.GetInt("oldteam") != 2)
-			g_bTeamChanged[client] = true;
-	}
-	else {
-		if (event.GetInt("oldteam") == 2)
-			g_bTeamChanged[client] = false;
+		int oldteam = event.GetInt("oldteam");
+		if (oldteam > 0 && oldteam != 2)
+			RequestFrame(NextFrame_Player, GetClientUserId(client));
 	}
 }
 
@@ -672,17 +667,10 @@ void PlayerSpawnPost(int client) {
 					RequestFrame(NextFrame_Player, GetClientUserId(client));
 			}
 
-			case 2: {
-				if (g_bTeamChanged[client])
-					RequestFrame(NextFrame_Player, GetClientUserId(client));
-			}
-
 			case 1, 3, 4:
 				RequestFrame(NextFrame_Player, GetClientUserId(client));
 		}
 	}
-
-	g_bTeamChanged[client] = false;
 }
 
 void NextFrame_Player(int client) {
@@ -777,11 +765,7 @@ int GetLeastCharacter(int client) {
 		if (i == client || !IsClientInGame(i) || GetClientTeam(i) != 2)
 			continue;
 
-		if (GetEntProp(i, Prop_Send, "m_survivorCharacter", 2) > 7)
-			continue;
-
 		GetClientModel(i, ModelName, sizeof ModelName);
-		StringToLowerCase(ModelName);
 		if (g_smSurModels.GetValue(ModelName, buf))
 			least[buf]++;
 	}
@@ -813,14 +797,6 @@ int GetLeastCharacter(int client) {
 	return buf;
 }
 
-void StringToLowerCase(char[] szInput) {
-	int iIterator;
-	while (szInput[iIterator] != EOS) {
-		szInput[iIterator] = CharToLower(szInput[iIterator]);
-		++iIterator;
-	}
-}
-
 void SetCharacterInfo(int client, int character, int modelIndex) {
 	if (g_iTabHUDBar && g_iTabHUDBar & g_iOrignalSet)
 		character = ConvertToInternalCharacter(character);
@@ -829,7 +805,6 @@ void SetCharacterInfo(int client, int character, int modelIndex) {
 	int buf = -1;
 	static char ModelName[128];
 	GetClientModel(client, ModelName, sizeof ModelName);
-	StringToLowerCase(ModelName);
 	g_smSurModels.GetValue(ModelName, buf);
 	LogError("Set \"%N\" Character \"%s\" to \"%s\"", client, buf != -1 ? g_sSurNames[buf] : ModelName, g_sSurNames[modelIndex]);
 	#endif
