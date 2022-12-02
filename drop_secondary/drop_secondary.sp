@@ -3,34 +3,18 @@
 #include <sourcemod>
 #include <sdkhooks>
 
-#define GAMEDATA	"drop_secondary"
-
 int
-	g_iOff_m_hHiddenWeapon;
+	m_hHiddenWeapon;
 
 public Plugin myinfo = {
 	name = "L4D2 Drop Secondary",
 	author = "sorallll",
-	version	= "1.0.0",
+	version	= "1.0.1",
 	url = "https://github.com/umlka/l4d2/tree/main/drop_secondary"
 };
 
 public void OnPluginStart() {
-	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, sizeof sPath, "gamedata/%s.txt", GAMEDATA);
-	if (!FileExists(sPath))
-		SetFailState("\n==========\nMissing required file: \"%s\".\n==========", sPath);
-
-	GameData hGameData = new GameData(GAMEDATA);
-	if (!hGameData)
-		SetFailState("Failed to load \"%s.txt\" gamedata.", GAMEDATA);
-
-	g_iOff_m_hHiddenWeapon = hGameData.GetOffset("CTerrorPlayer::OnIncapacitatedAsSurvivor::m_hHiddenWeapon");
-	if (g_iOff_m_hHiddenWeapon == -1)
-		SetFailState("Failed to find offset: \"CTerrorPlayer::OnIncapacitatedAsSurvivor::m_hHiddenWeapon\"");
-	
-	delete hGameData;
-
+	m_hHiddenWeapon = FindSendPropInfo("CTerrorPlayer", "m_knockdownTimer") + 116;
 	HookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
 }
 
@@ -39,8 +23,8 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast) {
 	if (!client || !IsClientInGame(client) || GetClientTeam(client) != 2)
 		return;
 
-	int entity = GetEntDataEnt2(client, g_iOff_m_hHiddenWeapon);
-	SetEntData(client, g_iOff_m_hHiddenWeapon, -1);
+	int entity = GetEntDataEnt2(client, m_hHiddenWeapon);
+	SetEntData(client, m_hHiddenWeapon, -1);
 	if (entity > MaxClients && IsValidEntity(entity) && GetEntPropEnt(entity, Prop_Data, "m_hOwnerEntity") == client) {
 		float vecTarget[3];
 		GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vecTarget);
