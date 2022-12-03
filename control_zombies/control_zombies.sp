@@ -2543,8 +2543,11 @@ void ToggleDetours(bool enable) {
 	else if (enabled && !enable) {
 		enabled = false;
 
-		if (!g_ddForEachTerrorPlayer_SpawnablePZScan.Disable(Hook_Pre, DD_ForEachTerrorPlayer_SpawnablePZScan_Pre) || !g_ddForEachTerrorPlayer_SpawnablePZScan.Disable(Hook_Post, DD_ForEachTerrorPlayer_SpawnablePZScan_Post))
-			SetFailState("Failed to disable detour: \"DD_ForEachTerrorPlayer<SpawnablePZScan>\"");
+		if (!g_ddForEachTerrorPlayer_SpawnablePZScan.Disable(Hook_Pre, DD_ForEachTerrorPlayer_SpawnablePZScan_Pre))
+			SetFailState("Failed to disable detour pre: \"ForEachTerrorPlayer<SpawnablePZScan>\"");
+
+		if (!g_ddForEachTerrorPlayer_SpawnablePZScan.Disable(Hook_Post, DD_ForEachTerrorPlayer_SpawnablePZScan_Post))
+			SetFailState("Failed to disable detour post: \"ForEachTerrorPlayer<SpawnablePZScan>\"");
 	}
 }
 
