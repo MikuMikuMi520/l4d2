@@ -98,8 +98,8 @@ int
 	g_iPlayerSpawn,
 	g_iSpawnablePZ,
 	g_iTransferTankBot,
-	g_iOff_m_hHiddenWeapon,
-	g_iOff_RestartScenarioTimer,
+	m_hHiddenWeapon,
+	RestartScenarioTimer,
 	g_iSurvivorMaxInc,
 	g_iMaxTankPlayer,
 	g_iMapFilterTank,
@@ -2205,11 +2205,11 @@ enum struct Data {
 			this.goingToDie = GetEntProp(client, Prop_Send, "m_isGoingToDie");
 		}
 
-		char sWeapon[32];
+		char weapon[32];
 		int slot = GetPlayerWeaponSlot(client, 0);
 		if (slot > MaxClients) {
-			GetEntityClassname(slot, sWeapon, sizeof sWeapon);
-			strcopy(this.slot0, sizeof Data::slot0, sWeapon);
+			GetEntityClassname(slot, weapon, sizeof weapon);
+			strcopy(this.slot0, sizeof Data::slot0, weapon);
 
 			this.clip0 = GetEntProp(slot, Prop_Send, "m_iClip1");
 			this.ammo = GetOrSetPlayerAmmo(client, slot);
@@ -2220,7 +2220,7 @@ enum struct Data {
 
 		// Mutant_Tanks (https://github.com/Psykotikism/Mutant_Tanks)
 		if (GetEntProp(client, Prop_Send, "m_isIncapacitated", 1)) {
-			int secondary = GetEntDataEnt2(client, g_iOff_m_hHiddenWeapon);
+			int secondary = GetEntDataEnt2(client, m_hHiddenWeapon);
 			switch (secondary > MaxClients && IsValidEntity(secondary)) {
 				case true:
 					slot = secondary;
@@ -2233,42 +2233,50 @@ enum struct Data {
 			slot = GetPlayerWeaponSlot(client, 1);
 
 		if (slot > MaxClients) {
-			GetEntityClassname(slot, sWeapon, sizeof sWeapon);
-			if (strcmp(sWeapon[7], "melee") == 0)
-				GetEntPropString(slot, Prop_Data, "m_strMapSetScriptName", sWeapon, sizeof sWeapon);
+			GetEntityClassname(slot, weapon, sizeof weapon);
+			if (strcmp(weapon, "weapon_melee") == 0) {
+				GetEntPropString(slot, Prop_Data, "m_strMapSetScriptName", weapon, sizeof weapon);
+				if (weapon[0] == '\0') {
+					// 防爆警察掉落的警棍m_strMapSetScriptName为空字符串 (感谢little_froy的提醒)
+					char ModelName[128];
+					GetEntPropString(slot, Prop_Data, "m_ModelName", ModelName, sizeof ModelName);
+					if (StrContains(ModelName, "v_tonfa.mdl", true) != -1)
+						strcopy(weapon, sizeof weapon, "tonfa");
+				}
+			}
 			else {
-				if (strncmp(sWeapon[7], "pistol", 6) == 0 || strcmp(sWeapon[7], "chainsaw") == 0)
+				if (strncmp(weapon, "weapon_pistol", 6) == 0 || strcmp(weapon, "weapon_chainsaw") == 0)
 					this.clip1 = GetEntProp(slot, Prop_Send, "m_iClip1");
 
-				this.dualWielding = strcmp(sWeapon[7], "pistol") == 0 && GetEntProp(slot, Prop_Send, "m_isDualWielding");
+				this.dualWielding = strcmp(weapon, "weapon_pistol") == 0 && GetEntProp(slot, Prop_Send, "m_isDualWielding");
 			}
 
-			strcopy(this.slot1, sizeof Data::slot1, sWeapon);
+			strcopy(this.slot1, sizeof Data::slot1, weapon);
 			this.weaponSkin1 = GetEntProp(slot, Prop_Send, "m_nSkin");
 		}
 
 		slot = GetPlayerWeaponSlot(client, 2);
 		if (slot > MaxClients && (slot != GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon") || GetEntPropFloat(slot, Prop_Data, "m_flNextPrimaryAttack") < GetGameTime())) {	//Method from HarryPotter (https://forums.alliedmods.net/showpost.php?p=2768411&postcount=5)
-			GetEntityClassname(slot, sWeapon, sizeof sWeapon);
-			strcopy(this.slot2, sizeof Data::slot2, sWeapon);
+			GetEntityClassname(slot, weapon, sizeof weapon);
+			strcopy(this.slot2, sizeof Data::slot2, weapon);
 		}
 
 		slot = GetPlayerWeaponSlot(client, 3);
 		if (slot > MaxClients) {
-			GetEntityClassname(slot, sWeapon, sizeof sWeapon);
-			strcopy(this.slot3, sizeof Data::slot3, sWeapon);
+			GetEntityClassname(slot, weapon, sizeof weapon);
+			strcopy(this.slot3, sizeof Data::slot3, weapon);
 		}
 
 		slot = GetPlayerWeaponSlot(client, 4);
 		if (slot > MaxClients) {
-			GetEntityClassname(slot, sWeapon, sizeof sWeapon);
-			strcopy(this.slot4, sizeof Data::slot4, sWeapon);
+			GetEntityClassname(slot, weapon, sizeof weapon);
+			strcopy(this.slot4, sizeof Data::slot4, weapon);
 		}
 	
 		slot = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 		if (slot > MaxClients) {
-			GetEntityClassname(slot, sWeapon, sizeof sWeapon);
-			strcopy(this.active, sizeof Data::active, sWeapon);
+			GetEntityClassname(slot, weapon, sizeof weapon);
+			strcopy(this.active, sizeof Data::active, weapon);
 		}
 	}
 
@@ -2291,7 +2299,7 @@ enum struct Data {
 			return;
 
 		if (GetEntProp(client, Prop_Send, "m_isIncapacitated", 1))
-			L4D_ReviveSurvivor(client); //SetEntProp(client, Prop_Send, "m_isIncapacitated", 0);
+			L4D_ReviveSurvivor(client);
 
 		SetEntProp(client, Prop_Send, "m_iHealth", this.health);
 		SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 1.0 * this.tempHealth);
@@ -2410,12 +2418,13 @@ void InitData() {
 	if (!hGameData)
 		SetFailState("Failed to load \"%s.txt\" gamedata.", GAMEDATA);
 
-	g_iOff_m_hHiddenWeapon = hGameData.GetOffset("m_hHiddenWeapon");
-	if (g_iOff_m_hHiddenWeapon == -1)
-		SetFailState("Failed to find offset: \"m_hHiddenWeapon\"");
+	m_hHiddenWeapon = FindSendPropInfo("CTerrorPlayer", "m_knockdownTimer") + 116;
+	/*m_hHiddenWeapon = hGameData.GetOffset("m_hHiddenWeapon");
+	if (m_hHiddenWeapon == -1)
+		SetFailState("Failed to find offset: \"m_hHiddenWeapon\"");*/
 
-	g_iOff_RestartScenarioTimer = hGameData.GetOffset("RestartScenarioTimer");
-	if (g_iOff_RestartScenarioTimer == -1)
+	RestartScenarioTimer = hGameData.GetOffset("RestartScenarioTimer");
+	if (RestartScenarioTimer == -1)
 		SetFailState("Failed to find offset: \"RestartScenarioTimer\"");
 
 	StartPrepSDKCall(SDKCall_Player);
@@ -2499,7 +2508,7 @@ void SetupDetours(GameData hGameData = null) {
 }
 
 bool OnEndScenario() {
-	return view_as<float>(LoadFromAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(g_iOff_RestartScenarioTimer + 8), NumberType_Int32)) > 0.0;
+	return view_as<float>(LoadFromAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(RestartScenarioTimer + 8), NumberType_Int32)) > 0.0;
 }
 
 int TakeOverZombieBot(int client, int target) {
