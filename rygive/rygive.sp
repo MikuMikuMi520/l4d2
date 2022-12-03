@@ -1043,8 +1043,17 @@ void SlotSelect(int client, int target) {
 		FormatEx(str[1], sizeof str[], "%d", i);
 		ImplodeStrings(str, sizeof str, "|", info, sizeof info);
 		GetEntityClassname(ent, cls, sizeof cls);
-		if (!strcmp(cls, "weapon_melee"))
+		if (strcmp(cls, "weapon_melee") == 0) {
 			GetEntPropString(ent, Prop_Data, "m_strMapSetScriptName", cls, sizeof cls);
+			if (cls[0] == '\0') {
+				// 防爆警察掉落的警棍m_strMapSetScriptName为空字符串 (感谢little_froy的提醒)
+				char ModelName[128];
+				GetEntPropString(ent, Prop_Data, "m_ModelName", ModelName, sizeof ModelName);
+				if (StrContains(ModelName, "v_tonfa.mdl", true) != -1)
+					strcopy(cls, sizeof cls, "tonfa");
+			}
+			g_smMeleeTrans.GetString(cls, cls, sizeof cls);
+		}
 
 		menu.AddItem(info, cls);
 	}
