@@ -1049,7 +1049,7 @@ void SlotSelect(int client, int target) {
 				// 防爆警察掉落的警棍m_strMapSetScriptName为空字符串 (感谢little_froy的提醒)
 				char ModelName[128];
 				GetEntPropString(ent, Prop_Data, "m_ModelName", ModelName, sizeof ModelName);
-				if (StrContains(ModelName, "v_tonfa.mdl", true) != -1)
+				if (strcmp(ModelName, "models/weapons/melee/v_tonfa.mdl") == 0)
 					strcopy(cls, sizeof cls, "tonfa");
 			}
 			g_smMeleeTrans.GetString(cls, cls, sizeof cls);
