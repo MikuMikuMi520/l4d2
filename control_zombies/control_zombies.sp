@@ -18,7 +18,7 @@
 #define PLUGIN_NAME				"Control Zombies In Co-op"
 #define PLUGIN_AUTHOR			"sorallll"
 #define PLUGIN_DESCRIPTION		""
-#define PLUGIN_VERSION			"3.5.3"
+#define PLUGIN_VERSION			"3.5.4"
 #define PLUGIN_URL				"https://steamcommunity.com/id/sorallll"
 
 #define GAMEDATA 				"control_zombies"
@@ -36,7 +36,7 @@ Data
 
 Handle
 	g_hTimer,
-	g_hSDK_CTerrorPlayer_SetBecomeGhostAt,
+	//g_hSDK_CTerrorPlayer_SetBecomeGhostAt,
 	g_hSDK_CTerrorGameRules_HasPlayerControlledZombies;
 
 MemoryPatch
@@ -322,7 +322,7 @@ void Toggle(bool enable) {
 		HookEvent("finale_vehicle_leaving",		Event_RoundEnd,			EventHookMode_PostNoCopy);
 		HookEvent("player_team",				Event_PlayerTeam);
 		HookEvent("player_spawn",				Event_PlayerSpawn);
-		HookEvent("ghost_spawn_time",			Event_GhostSpawnTime);
+		HookEvent("ghost_spawn_time",			Event_GhostSpawnTime,	EventHookMode_Pre);
 		HookEvent("player_death",				Event_PlayerDeath,		EventHookMode_Pre);
 		HookEvent("tank_frustrated",			Event_TankFrustrated);
 		HookEvent("player_bot_replace",			Event_PlayerBotReplace);
@@ -340,7 +340,7 @@ void Toggle(bool enable) {
 		UnhookEvent("finale_vehicle_leaving",	Event_RoundEnd,			EventHookMode_PostNoCopy);
 		UnhookEvent("player_team",				Event_PlayerTeam);
 		UnhookEvent("player_spawn",				Event_PlayerSpawn);
-		UnhookEvent("ghost_spawn_time",			Event_GhostSpawnTime);
+		UnhookEvent("ghost_spawn_time",			Event_GhostSpawnTime,	EventHookMode_Pre);
 		UnhookEvent("player_death",				Event_PlayerDeath,		EventHookMode_Pre);
 		UnhookEvent("tank_frustrated",			Event_TankFrustrated);
 		UnhookEvent("player_bot_replace",		Event_PlayerBotReplace);
@@ -1412,13 +1412,20 @@ void NextFrame_PlayerSpawn(int client) {
 	}
 }
 
-void Event_GhostSpawnTime(Event event, const char[] name, bool dontBroadcast) {
+Action Event_GhostSpawnTime(Event event, const char[] name, bool dontBroadcast) {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (!client || !IsClientInGame(client) || IsFakeClient(client) || GetClientTeam(client) != 3)
-		return;
+		return Plugin_Continue;
 
-	if (g_iPZPunishTime > 0 && g_ePlayer[client].ClassCmdUsed)
-		SDKCall(g_hSDK_CTerrorPlayer_SetBecomeGhostAt, client, GetGameTime() + float(event.GetInt("spawntime") + g_iPZPunishTime)); // left4dhooks-v1.123 L4D_SetBecomeGhostAt(client, GetGameTime() + float(event.GetInt("spawntime") + g_iPZPunishTime));
+	if (g_iPZPunishTime > 0 && g_ePlayer[client].ClassCmdUsed) {
+		int time = event.GetInt("spawntime") + g_iPZPunishTime;
+		// left4dhooks-v1.123
+		L4D_SetBecomeGhostAt(client, GetGameTime() + float(time)); // SDKCall(g_hSDK_CTerrorPlayer_SetBecomeGhostAt, client, GetGameTime() + float(time));
+		event.SetInt("spawntime", time);
+		return Plugin_Changed;
+	}
+
+	return Plugin_Continue;
 }
 
 void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast) {
@@ -1648,7 +1655,7 @@ void TeleportToSurvivor(int client) {
 		if (target == client || !IsClientInGame(target) || GetClientTeam(target) != 2 || !IsPlayerAlive(target))
 			continue;
 	
-		al_clients.Set(al_clients.Push(!GetEntProp(target, Prop_Send, "m_isIncapacitated", 1) ? 0 : !GetEntProp(target, Prop_Send, "m_isHangingFromLedge") ? 1 : 2), target, 1);
+		al_clients.Set(al_clients.Push(!GetEntProp(target, Prop_Send, "m_isIncapacitated", 1) ? 0 : !GetEntProp(target, Prop_Send, "m_isHangingFromLedge", 1) ? 1 : 2), target, 1);
 	}
 
 	if (!al_clients.Length)
@@ -2154,7 +2161,7 @@ enum struct Data {
 		}
 
 		if (GetEntProp(client, Prop_Send, "m_isIncapacitated", 1)) {
-			if (!GetEntProp(client, Prop_Send, "m_isHangingFromLedge")) {
+			if (!GetEntProp(client, Prop_Send, "m_isHangingFromLedge", 1)) {
 				static ConVar cSurvivorReviveH;
 				if (!cSurvivorReviveH)
 					cSurvivorReviveH = FindConVar("survivor_revive_health");
@@ -2240,7 +2247,7 @@ enum struct Data {
 					// 防爆警察掉落的警棍m_strMapSetScriptName为空字符串 (感谢little_froy的提醒)
 					char ModelName[128];
 					GetEntPropString(slot, Prop_Data, "m_ModelName", ModelName, sizeof ModelName);
-					if (StrContains(ModelName, "v_tonfa.mdl", true) != -1)
+					if (strcmp(ModelName, "models/weapons/melee/v_tonfa.mdl") == 0)
 						strcopy(weapon, sizeof weapon, "tonfa");
 				}
 			}
@@ -2427,13 +2434,13 @@ void InitData() {
 	if (RestartScenarioTimer == -1)
 		SetFailState("Failed to find offset: \"RestartScenarioTimer\"");
 
-	StartPrepSDKCall(SDKCall_Player);
+	/*StartPrepSDKCall(SDKCall_Player);
 	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CTerrorPlayer::SetBecomeGhostAt"))
 		SetFailState("Failed to find signature: \"CTerrorPlayer::SetBecomeGhostAt\"");
 	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
 	g_hSDK_CTerrorPlayer_SetBecomeGhostAt = EndPrepSDKCall();
 	if (!g_hSDK_CTerrorPlayer_SetBecomeGhostAt)
-		SetFailState("Failed to create SDKCall: \"CTerrorPlayer::SetBecomeGhostAt\"");
+		SetFailState("Failed to create SDKCall: \"CTerrorPlayer::SetBecomeGhostAt\"");*/
 
 	StartPrepSDKCall(SDKCall_Static);
 	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CTerrorGameRules::HasPlayerControlledZombies"))
@@ -2473,7 +2480,7 @@ void InitPatchs(GameData hGameData = null) {
 	MemoryPatch patch;
 	Patch(hGameData, patch, PATCH_UPDATE_PZ_RESPAWN);
 	Patch(hGameData, patch, PATCH_CANBECOMEGHOST);
-	Patch(hGameData, patch, PATCH_UNLOCKSETTING);
+	//Patch(hGameData, patch, PATCH_UNLOCKSETTING);
 	Patch(hGameData, patch, PATCH_CONVERTZOMBIECLASS);
 	Patch(hGameData, patch, PATCH_WARPGHOST_BUG_BLOCK);
 	Patch(hGameData, patch, PATCH_WARPGHOST_BUG_BLOCK1);
