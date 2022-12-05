@@ -878,7 +878,7 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
 	delete g_hBotsTimer;
 	g_hBotsTimer = CreateTimer(2.0, tmrBotsUpdate);
 
-	SetEntProp(client, Prop_Send, "m_isGhost", 0, 1);
+	SetEntProp(client, Prop_Send, "m_isGhost", 0);
 	if (!IsFakeClient(client) && IsFirstTime(client))
 		RecordSteamID(client);
 }
@@ -909,7 +909,7 @@ void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast) {
 		}
 
 		case TEAM_SURVIVOR:
-			SetEntProp(client, Prop_Send, "m_isGhost", 0, 1);
+			SetEntProp(client, Prop_Send, "m_isGhost", 0);
 	}
 }
 
