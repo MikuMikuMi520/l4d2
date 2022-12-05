@@ -616,7 +616,7 @@ Action cmdBotSet(int client, int args) {
 	}
 
 	if (args != 1) {
-		ReplyToCommand(client, "\x01!botset/sm_botset <\x05数量\x01>.");
+		ReplyToCommand(client, "\x01!bot/sm_bot <\x05数量\x01>.");
 		return Plugin_Handled;
 	}
 
