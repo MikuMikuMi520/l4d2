@@ -15,7 +15,7 @@
 
 #define GAMEDATA				"survivor_chat_select"
 
-#define DEBUG 					1
+#define DEBUG 					0
 
 #define	 NICK					0, 0
 #define	 ROCHELLE				1, 1
