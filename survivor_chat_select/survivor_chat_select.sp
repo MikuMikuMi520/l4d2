@@ -10,12 +10,12 @@
 #define PLUGIN_NAME				"Survivor Chat Select"
 #define PLUGIN_AUTHOR			"DeatChaos25, Mi123456 & Merudo, Lux, SilverShot"
 #define PLUGIN_DESCRIPTION		"Select a survivor character by typing their name into the chat."
-#define PLUGIN_VERSION			"1.8.0"
+#define PLUGIN_VERSION			"1.8.2"
 #define PLUGIN_URL				"https://forums.alliedmods.net/showthread.php?p=2399163#post2399163"
 
 #define GAMEDATA				"survivor_chat_select"
 
-#define DEBUG 					0
+#define DEBUG 					1
 
 #define	 NICK					0, 0
 #define	 ROCHELLE				1, 1
@@ -29,6 +29,10 @@
 Handle
 	g_hSDK_CDirector_IsInTransition,
 	g_hSDK_KeyValues_GetInt;
+
+DynamicDetour
+	g_ddRestoreTransitionedSurvivorBot,
+	g_ddInfoChangelevel_ChangeLevelNow;
 
 StringMap
 	g_smSurModels;
@@ -64,7 +68,8 @@ bool
 	g_bRestoringBots,
 	g_bBotPlayer[MAXPLAYERS + 1],
 	g_bPlayerBot[MAXPLAYERS + 1],
-	g_bFirstSpawn[MAXPLAYERS + 1];
+	g_bFirstSpawn[MAXPLAYERS + 1],
+	g_bOnNextFrame[MAXPLAYERS + 1];
 
 static const char
 	g_sSurNames[][] = {
@@ -138,15 +143,10 @@ public void OnPluginStart() {
 	RegAdminCmd("sm_csc", 			cmdCsc, 		ADMFLAG_ROOT, "Brings up a menu to select a client's character");
 	RegAdminCmd("sm_setleast", 		cmdSetLeast,	ADMFLAG_ROOT, "重新将所有生还者模型设置为重复次数最少的");
 
-	HookEvent("round_start", 		Event_RoundStart, 		EventHookMode_PostNoCopy);
-	HookEvent("player_bot_replace", Event_PlayerBotReplace, EventHookMode_Pre);
-	HookEvent("bot_player_replace", Event_BotPlayerReplace, EventHookMode_Pre);
-	HookEvent("player_team",		Event_PlayerTeam, EventHookMode_Pre);
-
-	g_cAutoModel = 			CreateConVar("l4d_scs_auto_model", 		"1","开关8人独立模型?", FCVAR_NOTIFY);
-	g_cTabHUDBar = 			CreateConVar("l4d_scs_tab_hud_bar", 	"1","在哪些地图上显示一代人物的TAB状态栏? \n0=默认, 1=一代图, 2=二代图, 3=一代和二代图.", FCVAR_NOTIFY);
-	g_cAdminsOnly = 		CreateConVar("l4d_csm_admins_only", 	"1","只允许管理员使用csm命令?", FCVAR_NOTIFY);
-	g_cInTransition = 		CreateConVar("l4d_csm_in_transition", 	"1","启用8人独立模型后不对正在过渡的玩家设置?", FCVAR_NOTIFY);
+	g_cAutoModel = 			CreateConVar("l4d_scs_auto_model", 		"1",	"开关8人独立模型?", FCVAR_NOTIFY);
+	g_cTabHUDBar = 			CreateConVar("l4d_scs_tab_hud_bar", 	"1",	"在哪些地图上显示一代人物的TAB状态栏? \n0=默认, 1=一代图, 2=二代图, 3=一代和二代图.", FCVAR_NOTIFY);
+	g_cAdminsOnly = 		CreateConVar("l4d_csm_admins_only", 	"1",	"只允许管理员使用csm命令?", FCVAR_NOTIFY);
+	g_cInTransition = 		CreateConVar("l4d_csm_in_transition", 	"1",	"启用8人独立模型后不对正在过渡的玩家设置?", FCVAR_NOTIFY);
 	g_cPrecacheAllSur =		FindConVar("precache_all_survivors");
 
 	g_cAutoModel.AddChangeHook(CvarChanged);
@@ -553,10 +553,62 @@ void CvarChanged(ConVar convar, const char[] oldValue, const char[] newValue) {
 }
 
 void GetCvars() {
-	g_bAutoModel=		g_cAutoModel.BoolValue;
+	g_bAutoModel =		g_cAutoModel.BoolValue;
+
+	Toggle(g_bAutoModel);
+
 	g_iTabHUDBar =		g_cTabHUDBar.IntValue;
 	g_bAdminsOnly =		g_cAdminsOnly.BoolValue;
 	g_bInTransition =	g_cInTransition.BoolValue;
+}
+
+void Toggle(bool enable) {
+	static bool enabled;
+	if (!enabled && enable) {
+		enabled = true;
+
+		HookEvent("round_start",			Event_RoundStart,			EventHookMode_PostNoCopy);
+		HookEvent("player_bot_replace",		Event_PlayerBotReplace,		EventHookMode_Pre);
+		HookEvent("bot_player_replace",		Event_BotPlayerReplace,		EventHookMode_Pre);
+		HookEvent("player_team",			Event_PlayerTeam,			EventHookMode_Pre);
+
+		if (!g_ddRestoreTransitionedSurvivorBot.Enable(Hook_Pre, DD_RestoreTransitionedSurvivorBot_Pre))
+			SetFailState("Failed to detour pre: \"DD::RestoreTransitionedSurvivorBots\"");
+
+		if (!g_ddRestoreTransitionedSurvivorBot.Enable(Hook_Post, DD_RestoreTransitionedSurvivorBot_Post))
+			SetFailState("Failed to detour post: \"DD::RestoreTransitionedSurvivorBots\"");
+
+		if (!g_ddInfoChangelevel_ChangeLevelNow.Enable(Hook_Post, DD_InfoChangelevel_ChangeLevelNow_Post))
+			SetFailState("Failed to detour post: \"DD::InfoChangelevel::ChangeLevelNow\"");
+	}
+	else if (enabled && !enable) {
+		enabled = false;
+		
+		UnhookEvent("round_start",			Event_RoundStart, 			EventHookMode_PostNoCopy);
+		UnhookEvent("player_bot_replace",	Event_PlayerBotReplace,		EventHookMode_Pre);
+		UnhookEvent("bot_player_replace",	Event_BotPlayerReplace,		EventHookMode_Pre);
+		UnhookEvent("player_team",			Event_PlayerTeam,			EventHookMode_Pre);
+
+		if (!g_ddRestoreTransitionedSurvivorBot.Disable(Hook_Pre, DD_RestoreTransitionedSurvivorBot_Pre))
+			SetFailState("Failed to disable detour pre: \"DD::RestoreTransitionedSurvivorBots\"");
+
+		if (!g_ddRestoreTransitionedSurvivorBot.Disable(Hook_Post, DD_RestoreTransitionedSurvivorBot_Post))
+			SetFailState("Failed to disable detour post: \"DD::RestoreTransitionedSurvivorBots\"");
+
+		if (!g_ddInfoChangelevel_ChangeLevelNow.Disable(Hook_Post, DD_InfoChangelevel_ChangeLevelNow_Post))
+			SetFailState("Failed to disable detour post: \"DD::InfoChangelevel::ChangeLevelNow\"");
+
+		g_bTransition = false;
+		g_bTransitioned = false;
+
+		for (int i = 1; i <= MaxClients; i++) {
+			g_bBotPlayer[i] = false;
+			g_bPlayerBot[i] = false;
+			g_iTransitioning[i] = 0;
+			if (IsClientInGame(i))
+				SDKUnhook(i, SDKHook_SpawnPost, IsFakeClient(i) ? BotSpawnPost : PlayerSpawnPost);
+		}
+	}
 }
 
 void Event_RoundStart(Event event, char[] name, bool dontBroadcast) {
@@ -567,9 +619,6 @@ void Event_RoundStart(Event event, char[] name, bool dontBroadcast) {
 }
 
 void Event_PlayerBotReplace(Event event, char[] name, bool dontBroadcast) {
-	if (!g_bAutoModel)
-		return;
-
 	int bot = GetClientOfUserId(event.GetInt("bot"));
 	if (!bot || !IsClientInGame(bot))
 		return;
@@ -589,18 +638,13 @@ void Event_PlayerBotReplace(Event event, char[] name, bool dontBroadcast) {
 }
 
 void Event_BotPlayerReplace(Event event, char[] name, bool dontBroadcast) {
-	if (!g_bAutoModel)
-		return;
-
 	int player = GetClientOfUserId(event.GetInt("player"));
 	if (!player || !IsClientInGame(player) || IsFakeClient(player) || GetClientTeam(player) != 2)
 		return;
 
 	int bot = GetClientOfUserId(event.GetInt("bot"));
-	if (!bot || !IsClientInGame(bot) || !CPlayerResource().m_bConnected(bot)) {
-		RequestFrame(NextFrame_BotPlayer, player);
+	if (!bot || !IsClientInGame(bot) || !CPlayerResource().m_bConnected(bot))
 		return;
-	}
 
 	g_bPlayerBot[bot] = false;
 	g_bBotPlayer[player] = true;
@@ -611,11 +655,15 @@ void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast) {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (!client || !IsClientInGame(client) || IsFakeClient(client))
 		return;
-	
-	if (event.GetInt("team") == 2) {
-		int oldteam = event.GetInt("oldteam");
-		if (oldteam > 0 && oldteam != 2)
-			RequestFrame(NextFrame_Player, GetClientUserId(client));
+
+	if (g_bOnNextFrame[client] || event.GetInt("team") != 2)
+		return;
+
+	switch (event.GetInt("oldteam")) {
+		case 1, 3, 4: {
+			g_bOnNextFrame[client] = true;
+			RequestFrame(NextFrame_Player, event.GetInt("userid"));
+		}
 	}
 }
 
@@ -642,9 +690,10 @@ public void OnEntityCreated(int entity, const char[] classname) {
 		return;
 
 	if (classname[0] == 'p' && strcmp(classname[1], "layer", false) == 0) {
+		g_bFirstSpawn[entity] = true;
+		g_bOnNextFrame[entity] = false;
 		SDKHook(entity, SDKHook_SpawnPost, PlayerSpawnPost);
 
-		g_bFirstSpawn[entity] = true;
 		if (g_iTransitioning[entity])
 			g_iTransitioning[entity] = -1;
 		else
@@ -663,12 +712,18 @@ void PlayerSpawnPost(int client) {
 			case 0: {
 				if (g_bInTransition && g_iTransitioning[client] == 1)
 					g_bFirstSpawn[client] = false;
-				else
+				else if (!g_bOnNextFrame[client]) {
+					g_bOnNextFrame[client] = true;
 					RequestFrame(NextFrame_Player, GetClientUserId(client));
+				}
 			}
 
-			case 1, 3, 4:
-				RequestFrame(NextFrame_Player, GetClientUserId(client));
+			case 1, 3, 4: {
+				if (!g_bOnNextFrame[client]) {
+					g_bOnNextFrame[client] = true;
+					RequestFrame(NextFrame_Player, GetClientUserId(client));
+				}
+			}
 		}
 	}
 }
@@ -678,17 +733,22 @@ void NextFrame_Player(int client) {
 	if (!client)
 		return;
 
-	if ((!g_bFirstSpawn[client] && g_bBotPlayer[client]) || g_bPlayerBot[client])
+	if (!IsClientInGame(client) || GetClientTeam(client) != 2) {
+		g_bOnNextFrame[client] = false;
 		return;
+	}
 
-	if (!IsClientInGame(client) || GetClientTeam(client) != 2)
+	if ((!g_bFirstSpawn[client] && g_bBotPlayer[client]) || g_bPlayerBot[client]) {
+		g_bOnNextFrame[client] = false;
 		return;
+	}
 
 	static bool once[MAXPLAYERS + 1];
 	if (once[client] && !PrepTransition() && !PrepRestoreBots()) {
 		once[client] = false;
 		SetLeastCharacter(client);
 		g_bFirstSpawn[client] = false;
+		g_bOnNextFrame[client] = false;
 	}
 	else {
 		once[client] = !PrepTransition() && !PrepRestoreBots();
@@ -696,6 +756,7 @@ void NextFrame_Player(int client) {
 		if (!g_bInTransition) {
 			SetLeastCharacter(client);
 			g_bFirstSpawn[client] = false;
+			g_bOnNextFrame[client] = false;
 		}
 		else
 			RequestFrame(NextFrame_Player, GetClientUserId(client));
@@ -762,7 +823,7 @@ int GetLeastCharacter(int client) {
 	int i = 1, buf, least[8];
 	static char ModelName[128];
 	for (; i <= MaxClients; i++) {
-		if (i == client || !IsClientInGame(i) || GetClientTeam(i) != 2)
+		if (i == client || !IsClientInGame(i) || IsClientInKickQueue(i) || GetClientTeam(i) != 2)
 			continue;
 
 		GetClientModel(i, ModelName, sizeof ModelName);
@@ -895,14 +956,21 @@ void ReEquipWeapons(int client) {
 				bool dualWielding;
 
 				GetEntityClassname(weapon, cls, sizeof cls);
-
-				if (strcmp(cls[7], "melee") == 0)
+				if (strcmp(cls, "weapon_melee") == 0) {
 					GetEntPropString(weapon, Prop_Data, "m_strMapSetScriptName", cls, sizeof cls);
+					if (cls[0] == '\0') {
+						// 防爆警察掉落的警棍m_strMapSetScriptName为空字符串 (感谢little_froy的提醒)
+						char ModelName[128];
+						GetEntPropString(weapon, Prop_Data, "m_ModelName", ModelName, sizeof ModelName);
+						if (strcmp(ModelName, "models/weapons/melee/v_tonfa.mdl") == 0)
+							strcopy(cls, sizeof cls, "tonfa");
+					}
+				}
 				else {
-					if (strncmp(cls[7], "pistol", 6) == 0 || strcmp(cls[7], "chainsaw") == 0)
+					if (strncmp(cls, "weapon_pistol", 6) == 0 || strcmp(cls, "weapon_chainsaw") == 0)
 						clip1 = GetEntProp(weapon, Prop_Send, "m_iClip1");
 
-					dualWielding = strcmp(cls[7], "pistol") == 0 && GetEntProp(weapon, Prop_Send, "m_isDualWielding");
+					dualWielding = strcmp(cls, "weapon_pistol") == 0 && GetEntProp(weapon, Prop_Send, "m_isDualWielding");
 				}
 
 				weaponSkin = GetEntProp(weapon, Prop_Send, "m_nSkin");
@@ -1007,22 +1075,13 @@ void InitGameData() {
 }
 
 void SetupDetours(GameData hGameData = null) {
-	DynamicDetour dDetour = DynamicDetour.FromConf(hGameData, "DD::RestoreTransitionedSurvivorBots");
-	if (!dDetour)
+	g_ddRestoreTransitionedSurvivorBot = DynamicDetour.FromConf(hGameData, "DD::RestoreTransitionedSurvivorBots");
+	if (!g_ddRestoreTransitionedSurvivorBot)
 		SetFailState("Failed to create DynamicDetour: \"DD::RestoreTransitionedSurvivorBots\"");
 
-	if (!dDetour.Enable(Hook_Pre, DD_RestoreTransitionedSurvivorBot_Pre))
-		SetFailState("Failed to detour pre: \"DD::RestoreTransitionedSurvivorBots\"");
-
-	if (!dDetour.Enable(Hook_Post, DD_RestoreTransitionedSurvivorBot_Post))
-		SetFailState("Failed to detour post: \"DD::RestoreTransitionedSurvivorBots\"");
-
-	dDetour = DynamicDetour.FromConf(hGameData, "DD::InfoChangelevel::ChangeLevelNow");
-	if (!dDetour)
+	g_ddInfoChangelevel_ChangeLevelNow = DynamicDetour.FromConf(hGameData, "DD::InfoChangelevel::ChangeLevelNow");
+	if (!g_ddInfoChangelevel_ChangeLevelNow)
 		SetFailState("Failed to create DynamicDetour: \"DD::InfoChangelevel::ChangeLevelNow\"");
-
-	if (!dDetour.Enable(Hook_Post, DD_InfoChangelevel_ChangeLevelNow_Post))
-		SetFailState("Failed to detour post: \"DD::InfoChangelevel::ChangeLevelNow\"");
 }
 
 MRESReturn DD_RestoreTransitionedSurvivorBot_Pre() {
