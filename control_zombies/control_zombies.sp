@@ -18,7 +18,7 @@
 #define PLUGIN_NAME				"Control Zombies In Co-op"
 #define PLUGIN_AUTHOR			"sorallll"
 #define PLUGIN_DESCRIPTION		""
-#define PLUGIN_VERSION			"3.5.4"
+#define PLUGIN_VERSION			"3.5.5"
 #define PLUGIN_URL				"https://steamcommunity.com/id/sorallll"
 
 #define GAMEDATA 				"control_zombies"
@@ -304,7 +304,7 @@ void PluginStateChanged() {
 				}
 
 				delete g_hTimer;
-				g_hTimer = CreateTimer(0.1, tmrPlayerStatus, _, TIMER_REPEAT);
+				g_hTimer = CreateTimer(0.1, tmrPlayer, _, TIMER_REPEAT);
 			}
 		}
 	}
@@ -692,7 +692,7 @@ Action cmdTakeOverTank(int client, int args) {
 	if (GetClientTeam(client) == 3)
 		g_ePlayer[client].LastTeamID = g_ePlayer[client].LastTeamID == 2 ? 2 : team != 3 ? 2 : 3;
 
-	if (TakeOverZombieBot(client, tank) == 8 && IsPlayerAlive(client)) {
+	if (TakeOverZombieBot(client, tank, false) == 8 && IsPlayerAlive(client)) {
 		if (g_iCmdEnterCooling & (1 << 0))
 			g_ePlayer[client].LastUsedTime = GetEngineTime() + g_fCmdCooldownTime;
 	}
@@ -989,12 +989,12 @@ void TransferTank(int tank, int target, int reply) {
 		L4D_State_Transition(tank, STATE_GHOST);
 	}
 
-	if (g_iTransferTankBot && TakeOverZombieBot(target, g_iTransferTankBot) == 8 && IsPlayerAlive(target)) {
+	if (g_iTransferTankBot && TakeOverZombieBot(target, g_iTransferTankBot, !!ghost) == 8 && IsPlayerAlive(target)) {
 		if (g_iCmdEnterCooling & (1 << 0))
 			g_ePlayer[target].LastUsedTime = GetEngineTime() + g_fCmdCooldownTime;
 
-		if (ghost)
-			L4D_State_Transition(target, STATE_GHOST);
+		/*if (ghost)
+			EnterGhostMode(target);*/
 
 		CPrintToChatAll("{green}★ {olive}%N{default}({red}坦克控制权{default}) 已由 {olive}%N {default}转交给 {olive}%N", tank, reply, target);
 	}
@@ -1237,7 +1237,7 @@ public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client) {
 	g_bLeftSafeArea = true;
 	if (!g_iControlled) {
 		delete g_hTimer;
-		g_hTimer = CreateTimer(0.1, tmrPlayerStatus, _, TIMER_REPEAT);
+		g_hTimer = CreateTimer(0.1, tmrPlayer, _, TIMER_REPEAT);
 	}
 }
 
@@ -1340,7 +1340,7 @@ Action tmrLadderAndGlow(Handle timer, int client) {
 				CreateSurGlow(i);
 
 			delete g_hTimer;
-			g_hTimer = CreateTimer(0.1, tmrPlayerStatus, _, TIMER_REPEAT);
+			g_hTimer = CreateTimer(0.1, tmrPlayer, _, TIMER_REPEAT);
 		}
 	}
 	else {
@@ -1463,7 +1463,7 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast) {
 	}
 }
 
-Action tmrPlayerStatus(Handle timer) {
+Action tmrPlayer(Handle timer) {
 	if (g_iControlled == 1) {
 		g_hTimer = null;
 		return Plugin_Stop;
@@ -1649,25 +1649,25 @@ int GetTankCount(int filter = -1) {
 
 void TeleportToSurvivor(int client) {
 	int target = 1;
-	ArrayList al_clients = new ArrayList(2);
+	ArrayList aClients = new ArrayList(2);
 
 	for (; target <= MaxClients; target++) {
 		if (target == client || !IsClientInGame(target) || GetClientTeam(target) != 2 || !IsPlayerAlive(target))
 			continue;
 	
-		al_clients.Set(al_clients.Push(!GetEntProp(target, Prop_Send, "m_isIncapacitated", 1) ? 0 : !GetEntProp(target, Prop_Send, "m_isHangingFromLedge", 1) ? 1 : 2), target, 1);
+		aClients.Set(aClients.Push(!GetEntProp(target, Prop_Send, "m_isIncapacitated", 1) ? 0 : !GetEntProp(target, Prop_Send, "m_isHangingFromLedge", 1) ? 1 : 2), target, 1);
 	}
 
-	if (!al_clients.Length)
+	if (!aClients.Length)
 		target = 0;
 	else {
-		al_clients.Sort(Sort_Descending, Sort_Integer);
+		aClients.Sort(Sort_Descending, Sort_Integer);
 
-		target = al_clients.Length - 1;
-		target = al_clients.Get(Math_GetRandomInt(al_clients.FindValue(al_clients.Get(target, 0)), target), 1);
+		target = aClients.Length - 1;
+		target = aClients.Get(Math_GetRandomInt(aClients.FindValue(aClients.Get(target, 0)), target), 1);
 	}
 
-	delete al_clients;
+	delete aClients;
 
 	if (target) {
 		SetInvincibilityTime(client, 1.0);
@@ -1691,26 +1691,26 @@ void SetInvincibilityTime(int client, float flDuration) {
 
 int FindUselessSurBot(bool alive) {
 	int client;
-	ArrayList al_clients = new ArrayList(2);
+	ArrayList aClients = new ArrayList(2);
 
 	for (int i = MaxClients; i >= 1; i--) {
 		if (!IsValidSurBot(i))
 			continue;
 
 		client = GetClientOfUserId(g_ePlayer[i].Player);
-		al_clients.Set(al_clients.Push(IsPlayerAlive(i) == alive ? (!client || !IsClientInGame(client) || IsFakeClient(client) || GetClientTeam(client) == 2 ? 0 : 1) : (!client || !IsClientInGame(client) || IsFakeClient(client) || GetClientTeam(client) == 2 ? 2 : 3)), i, 1);
+		aClients.Set(aClients.Push(IsPlayerAlive(i) == alive ? (!client || !IsClientInGame(client) || IsFakeClient(client) || GetClientTeam(client) == 2 ? 0 : 1) : (!client || !IsClientInGame(client) || IsFakeClient(client) || GetClientTeam(client) == 2 ? 2 : 3)), i, 1);
 	}
 
-	if (!al_clients.Length)
+	if (!aClients.Length)
 		client = 0;
 	else {
-		al_clients.Sort(Sort_Descending, Sort_Integer);
+		aClients.Sort(Sort_Descending, Sort_Integer);
 
-		client = al_clients.Length - 1;
-		client = al_clients.Get(Math_GetRandomInt(al_clients.FindValue(al_clients.Get(client, 0)), client), 1);
+		client = aClients.Length - 1;
+		client = aClients.Get(Math_GetRandomInt(aClients.FindValue(aClients.Get(client, 0)), client), 1);
 	}
 
-	delete al_clients;
+	delete aClients;
 	return client;
 }
 
@@ -1746,40 +1746,12 @@ public Action L4D_OnTryOfferingTankBot(int tank_index, bool &enterStasis) {
 		return Plugin_Handled;
 	}
 
-	if (g_ePlayer[tank_index].TankBot == 2)
-		return Plugin_Handled;
-
-	if (GetNormalCount() < g_iSurvivorLimit)
-		return Plugin_Handled;
-
-	int client = GetPendingPlayer();
-	if (!client)
-		return Plugin_Handled;
-
-	int team = GetClientTeam(client);
-	if (team == 2) {
-		g_eData[client].Clean();
-		g_eData[client].Save(client, false);
-		ChangeClientTeam(client, 3);
-	}
-
-	if (GetClientTeam(client) != 3)
-		return Plugin_Handled;
-
-	g_ePlayer[tank_index].TankBot = 2;
-	g_ePlayer[client].LastTeamID = g_ePlayer[client].LastTeamID == 2 ? 2 : team != 3 ? 2 : 3;
-
-	for (int i = 1; i <= MaxClients; i++) {
-		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == 3)
-			L4D2Direct_SetTankTickets(i, i != client ? 0 : 20000);
-	}
-
-	return Plugin_Continue;
+	return Plugin_Handled;
 }
 
 int GetPendingPlayer() {
 	int client = 1;
-	ArrayList al_clients = new ArrayList(2);
+	ArrayList aClients = new ArrayList(2);
 
 	bool allowSur = AllowSurTakeOver();
 	for (; client <= MaxClients; client++) {
@@ -1793,43 +1765,43 @@ int GetPendingPlayer() {
 
 				if (g_ePlayer[client].IsPlayerPB) {
 					if (g_iLotTargetPlayer & (1 << 0))
-						al_clients.Set(al_clients.Push(0), client, 1);
+						aClients.Set(aClients.Push(0), client, 1);
 				}
 				else if (g_iLotTargetPlayer & (1 << 1))
-					al_clients.Set(al_clients.Push(1), client, 1);
+					aClients.Set(aClients.Push(1), client, 1);
 			}
 
 			case 3: {
 				if (IsPlayerAlive(client) && GetEntProp(client, Prop_Send, "m_zombieClass") == 8)
 					continue;
 
-				if (GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_pendingTankPlayerIndex") == client)
-					continue;
+				/*if (GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_pendingTankPlayerIndex") == client)
+					continue;*/
 			
 				if (g_ePlayer[client].IsPlayerPB) {
 					if (g_iLotTargetPlayer & (1 << 0))
-						al_clients.Set(al_clients.Push(0), client, 1);
+						aClients.Set(aClients.Push(0), client, 1);
 				}
 				else if (g_iLotTargetPlayer & (1 << 2))
-					al_clients.Set(al_clients.Push(1), client, 1);
+					aClients.Set(aClients.Push(1), client, 1);
 			}
 		}
 	}
 
-	if (!al_clients.Length)
+	if (!aClients.Length)
 		client = 0;
 	else {
-		if (al_clients.FindValue(0) != -1) {
-			al_clients.Sort(Sort_Descending, Sort_Integer);
-			client = al_clients.Get(Math_GetRandomInt(al_clients.FindValue(0), al_clients.Length - 1), 1);
+		if (aClients.FindValue(0) != -1) {
+			aClients.Sort(Sort_Descending, Sort_Integer);
+			client = aClients.Get(Math_GetRandomInt(aClients.FindValue(0), aClients.Length - 1), 1);
 		}
 		else if (g_fSurvivorChance > 0.0 && Math_GetRandomFloat(0.0, 1.0) <= g_fSurvivorChance)
-			client = al_clients.Get(Math_GetRandomInt(0, al_clients.Length - 1), 1);
+			client = aClients.Get(Math_GetRandomInt(0, aClients.Length - 1), 1);
 		else
 			client = 0;
 	}
 
-	delete al_clients;
+	delete aClients;
 	return client;
 }
 
@@ -1863,8 +1835,9 @@ int TakeOverTank(int tank) {
 	if (GetClientTeam(client) == 3)
 		g_ePlayer[client].LastTeamID = g_ePlayer[client].LastTeamID == 2 ? 2 : team != 3 ? 2 : 3;
 	
-	if (TakeOverZombieBot(client, tank) == 8 && IsPlayerAlive(client))
+	if (TakeOverZombieBot(client, tank, true) == 8 && IsPlayerAlive(client)) {
 		return client;
+	}
 
 	return 0;
 }
@@ -2518,16 +2491,73 @@ bool OnEndScenario() {
 	return view_as<float>(LoadFromAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(RestartScenarioTimer + 8), NumberType_Int32)) > 0.0;
 }
 
-int TakeOverZombieBot(int client, int target) {
+int TakeOverZombieBot(int client, int target, bool ghost) {
 	int m_iHealth = GetEntProp(target, Prop_Data, "m_iHealth");
 	int m_iMaxHealth = GetEntProp(target, Prop_Data, "m_iMaxHealth");
 	if (IsPlayerAlive(client) && !GetEntProp(client, Prop_Send, "m_isGhost", 1))
 		L4D_ReplaceWithBot(client);
 
 	L4D_TakeOverZombieBot(client, target);
+	if (ghost)
+		EnterGhostMode(client);
+	
 	SetEntProp(client, Prop_Data, "m_iHealth", m_iHealth);
 	SetEntProp(client, Prop_Data, "m_iMaxHealth", m_iMaxHealth);
 	return GetEntProp(client, Prop_Send, "m_zombieClass");
+}
+
+void EnterGhostMode(int client) {
+	if (GetClientTeam(client) == 3 && IsPlayerAlive(client) && !GetEntProp(client, Prop_Send, "m_isGhost", 1)) {
+		float vPos[3];
+		float vAng[3];
+		float vVel[3];
+		GetClientAbsOrigin(client, vPos);
+		GetClientEyeAngles(client, vAng);
+		GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", vVel);
+
+		int class = GetEntProp(client, Prop_Send, "m_zombieClass");
+		L4D_State_Transition(client, STATE_GHOST);
+		L4D_SetClass(client, class);
+		TeleportEntity(client, vPos, vAng, vVel);
+		if (class == 8)
+			CreateTimer(1.0, tmrTank, GetClientUserId(client), TIMER_REPEAT);
+	}
+}
+
+#define CD 30
+Action tmrTank(Handle timer, int client) {
+	static int i;
+	static int cd[MAXPLAYERS + 1] = {CD, ...};
+
+	if (!(client = GetClientOfUserId(client)) || !IsClientInGame(client)) {
+		i = cd[client] = CD;
+		return Plugin_Stop;
+	}
+
+	if (GetClientTeam(client) != 3 || !IsPlayerAlive(client) || GetEntProp(client, Prop_Send, "m_zombieClass") != 8 || !GetEntProp(client, Prop_Send, "m_isGhost", 1)) {
+		i = cd[client] = CD;
+		return Plugin_Stop;
+	}
+
+	i = cd[client]--;
+	if (i > 0)
+		PrintHintText(client, "%d 秒后强制脱离灵魂状态", i);
+	else {
+		if (g_ePlayer[client].LastTeamID == 2)
+			ChangeTeamToSurvivor(client);
+		else {
+			L4D_MaterializeFromGhost(client);
+			SetEntPropFloat(client, Prop_Send, "m_flNextAttack", GetGameTime() + 5.0);
+		}
+
+		if (g_iCmdEnterCooling & (1 << 3))
+			g_ePlayer[client].LastUsedTime = GetEngineTime() + g_fCmdCooldownTime;
+
+		i = cd[client] = CD;
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
 }
 
 void RoundRespawn(int client) {
@@ -2628,20 +2658,27 @@ MRESReturn DD_ForEachTerrorPlayer_SpawnablePZScan_Post(DHookParam hParams) {
 }
 
 void NextFrame_EnteredGhostState(int client) {
-	if (!g_iControlled && (client = GetClientOfUserId(client)) && IsClientInGame(client) && GetClientTeam(client) == 3 && IsPlayerAlive(client) && GetEntProp(client, Prop_Send, "m_zombieClass") != 8 && GetEntProp(client, Prop_Send, "m_isGhost", 1)) {
-		if (!g_ePlayer[client].EnteredGhost) {
-			if (CheckClientAccess(client, 0))
-				CPrintToChat(client, "{default}聊天栏输入 {olive}!team2 {default}可返回{blue}生还者");
-				
-			if (CheckClientAccess(client, 5))
-				CPrintToChat(client, "{red}灵魂状态下{default} 按下 {red}[鼠标中键] {default}可以快速切换特感");
-		}
+	if (g_iControlled)
+		return;
 
-		DelaySelectClass(client);
-		g_ePlayer[client].EnteredGhost++;
+	if (!(client = GetClientOfUserId(client)) || !IsClientInGame(client) || GetClientTeam(client) != 3)
+		return;
+
+	if (!IsPlayerAlive(client) || GetEntProp(client, Prop_Send, "m_zombieClass") == 8 || !GetEntProp(client, Prop_Send, "m_isGhost", 1))
+		return;
+
+	DelaySelectClass(client);
+	g_ePlayer[client].EnteredGhost++;
 	
-		if (g_iPZSuicideTime > 0)
-			g_ePlayer[client].SuicideStart = GetEngineTime();
+	if (g_iPZSuicideTime > 0)
+		g_ePlayer[client].SuicideStart = GetEngineTime();
+
+	if (!g_ePlayer[client].EnteredGhost) {
+		if (CheckClientAccess(client, 0))
+			CPrintToChat(client, "{default}聊天栏输入 {olive}!team2 {default}可返回{blue}生还者");
+				
+		if (CheckClientAccess(client, 5))
+			CPrintToChat(client, "{red}灵魂状态下{default} 按下 {red}[鼠标中键] {default}可以快速切换特感");
 	}
 }
 
