@@ -1822,7 +1822,7 @@ void RemoveAllWeapons(int client) {
 	}
 
 	weapon = GetEntDataEnt2(client, m_hHiddenWeapon);
-	SetEntData(client, m_hHiddenWeapon, -1);
+	SetEntDataEnt2(client, m_hHiddenWeapon, -1, true);
 	if (weapon > MaxClients && IsValidEntity(weapon) && GetEntPropEnt(weapon, Prop_Data, "m_hOwnerEntity") == client) {
 		RemovePlayerItem(client, weapon);
 		RemoveEntity(weapon);
