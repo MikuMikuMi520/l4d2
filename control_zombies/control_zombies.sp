@@ -2225,7 +2225,7 @@ enum struct Data {
 				}
 			}
 			else {
-				if (strncmp(weapon, "weapon_pistol", 6) == 0 || strcmp(weapon, "weapon_chainsaw") == 0)
+				if (strncmp(weapon, "weapon_pistol", 13) == 0 || strcmp(weapon, "weapon_chainsaw") == 0)
 					this.clip1 = GetEntProp(slot, Prop_Send, "m_iClip1");
 
 				this.dualWielding = strcmp(weapon, "weapon_pistol") == 0 && GetEntProp(slot, Prop_Send, "m_isDualWielding");
