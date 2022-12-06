@@ -14,7 +14,7 @@
 #define PLUGIN_VERSION			"1.2.2"
 #define PLUGIN_URL				"https://github.com/nosoop/SMExt-SourceScramble"
 
-enum struct Patchs {
+enum struct Patches {
 	char file[PLATFORM_MAX_PATH];
 	char name[PLATFORM_MAX_PATH];
 	bool patched;
@@ -22,7 +22,7 @@ enum struct Patchs {
 }
 
 ArrayList
-	g_Patchs;
+	g_Patches;
 
 public Plugin myinfo = {
 	name = PLUGIN_NAME,
@@ -33,7 +33,7 @@ public Plugin myinfo = {
 };
 
 public void OnPluginStart() {
-	g_Patchs = new ArrayList(sizeof Patchs);
+	g_Patches = new ArrayList(sizeof Patches);
 
 	ParseConfigs();
 
@@ -45,8 +45,8 @@ public void OnPluginStart() {
 }
 
 Action cmdList(int args) {
-	Patchs patch;
-	int patchCount = g_Patchs.Length;
+	Patches patch;
+	int patchCount = g_Patches.Length;
 
 	if (!patchCount) {
 		PrintToServer("No patches");
@@ -54,7 +54,7 @@ Action cmdList(int args) {
 	}
 
 	for (int i; i < patchCount; i++) {
-		g_Patchs.GetArray(i, patch);
+		g_Patches.GetArray(i, patch);
 		PrintToServer("[%s] \"%s\" \t\"%s\"", patch.patched ? "●" : "○", patch.file, patch.name);
 	}
 
@@ -93,14 +93,14 @@ void PatchCommand(int args, bool enable) {
 }
 
 Action cmdReloadData(int args) {
-	Patchs patch;
-	int patchCount = g_Patchs.Length;
+	Patches patch;
+	int patchCount = g_Patches.Length;
 	for (int i; i < patchCount; i++) {
-		g_Patchs.GetArray(i, patch);
+		g_Patches.GetArray(i, patch);
 		delete patch.patch;
 	}
 
-	g_Patchs.Clear();
+	g_Patches.Clear();
 	ParseConfigs();
 
 	PrintToServer("[sourcescramble] Data config reloaded.");
@@ -175,21 +175,21 @@ SMCResult smcPatchMemConfigEntry(SMCParser smc, const char[] key, const char[] v
 		return SMCParse_Continue;
 	}
 
-	Patchs patch;
+	Patches patch;
 	strcopy(patch.file, sizeof patch.file, key);
 	strcopy(patch.name, sizeof patch.name, value);
 	patch.patch = mp;
 
-	g_Patchs.PushArray(patch);
+	g_Patches.PushArray(patch);
 
 	return SMCParse_Continue;
 }
 
 void TogglePatch(const char[] file, const char[] name, bool enable) {
-	Patchs patch;
-	int patchCount = g_Patchs.Length;
+	Patches patch;
+	int patchCount = g_Patches.Length;
 	for (int i; i < patchCount; i++) {
-		g_Patchs.GetArray(i, patch);
+		g_Patches.GetArray(i, patch);
 
 		if (file[0]) {
 			if (strcmp(patch.file, file))
@@ -212,6 +212,6 @@ void TogglePatch(const char[] file, const char[] name, bool enable) {
 			PrintToServer("[sourcescramble] Disabled patch \"%s\" from \"%s\" at address: 0x%08X", patch.name, patch.file, patch.patch.Address);
 		}
 
-		g_Patchs.SetArray(i, patch, sizeof Patchs);
+		g_Patches.SetArray(i, patch, sizeof Patches);
 	}
 }
