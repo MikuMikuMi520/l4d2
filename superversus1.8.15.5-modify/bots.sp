@@ -537,7 +537,7 @@ void TakeOverBotMenu(int client) {
 			continue;
 
 		FormatEx(info, sizeof info, "%d", GetClientUserId(i));
-		FormatEx(disp, sizeof disp, "%s - %s", IsPlayerAlive(i) ? "存活" : "死亡", g_sSurvivorNames[GetCharacter(client)]);
+		FormatEx(disp, sizeof disp, "%s - %s", IsPlayerAlive(i) ? "存活" : "死亡", g_sSurvivorNames[GetCharacter(i)]);
 		menu.AddItem(info, disp);
 	}
 
@@ -1686,7 +1686,7 @@ MRESReturn DD_CTerrorPlayer_GiveDefaultItems_Pre(int pThis) {
 void WriteTakeoverPanel(int client, int bot) {
 	char buf[2];
 	IntToString(GetCharacter(bot)/*GetEntProp(bot, Prop_Send, "m_survivorCharacter")*/, buf, sizeof buf);
-	BfWrite bf = view_as<BfWrite>(StartMessageOne("VGUIMenu", client));
+	BfWrite bf = view_as<BfWrite>(StartMessageOne("VGUIMenu", client, USERMSG_RELIABLE));
 	bf.WriteString("takeover_survivor_bar");
 	bf.WriteByte(true);
 	bf.WriteByte(1);
@@ -1695,7 +1695,7 @@ void WriteTakeoverPanel(int client, int bot) {
 	EndMessage();
 }
 
-// L4D2_Adrenaline_Recovery (https://github.com/LuxLuma/L4D2_Adrenaline_Recovery)
+// L4D2_Adrenaline_Recovery (https://github.com/LuxLuma/L4D2_Adrenaline_Recovery/blob/ac3f62eebe95d80fcf610fb6c7c1ed56bf4b31d2/%5BL4D2%5DAdrenaline_Recovery.sp#L96-L177)
 int GetCharacter(int client) {
 	char model[31];
 	GetClientModel(client, model, sizeof model);
