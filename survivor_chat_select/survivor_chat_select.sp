@@ -15,7 +15,7 @@
 
 #define GAMEDATA				"survivor_chat_select"
 
-#define DEBUG 					0
+#define DEBUG					0
 
 #define	 NICK					0, 0
 #define	 ROCHELLE				1, 1
@@ -68,8 +68,7 @@ bool
 	g_bRestoringBots,
 	g_bBotPlayer[MAXPLAYERS + 1],
 	g_bPlayerBot[MAXPLAYERS + 1],
-	g_bFirstSpawn[MAXPLAYERS + 1],
-	g_bOnNextFrame[MAXPLAYERS + 1];
+	g_bFirstSpawn[MAXPLAYERS + 1];
 
 static const char
 	g_sSurNames[][] = {
@@ -120,33 +119,33 @@ public void OnPluginStart() {
 	g_smSurModels = new StringMap();
 	HookUserMessage(GetUserMessageId("SayText2"), umSayText2, true);
 
-	RegConsoleCmd("sm_zoey", 		cmdZoeyUse, 	"Changes your survivor character into Zoey");
-	RegConsoleCmd("sm_nick", 		cmdNickUse, 	"Changes your survivor character into Nick");
-	RegConsoleCmd("sm_ellis", 		cmdEllisUse, 	"Changes your survivor character into Ellis");
-	RegConsoleCmd("sm_coach", 		cmdCoachUse, 	"Changes your survivor character into Coach");
-	RegConsoleCmd("sm_rochelle", 	cmdRochelleUse, "Changes your survivor character into Rochelle");
-	RegConsoleCmd("sm_bill", 		cmdBillUse, 	"Changes your survivor character into Bill");
-	RegConsoleCmd("sm_francis", 	cmdBikerUse, 	"Changes your survivor character into Francis");
-	RegConsoleCmd("sm_louis", 		cmdLouisUse, 	"Changes your survivor character into Louis");
+	RegConsoleCmd("sm_zoey",		cmdZoeyUse,		"Changes your survivor character into Zoey");
+	RegConsoleCmd("sm_nick",		cmdNickUse,		"Changes your survivor character into Nick");
+	RegConsoleCmd("sm_ellis",		cmdEllisUse,	"Changes your survivor character into Ellis");
+	RegConsoleCmd("sm_coach",		cmdCoachUse,	"Changes your survivor character into Coach");
+	RegConsoleCmd("sm_rochelle",	cmdRochelleUse,	"Changes your survivor character into Rochelle");
+	RegConsoleCmd("sm_bill",		cmdBillUse,		"Changes your survivor character into Bill");
+	RegConsoleCmd("sm_francis",		cmdBikerUse,	"Changes your survivor character into Francis");
+	RegConsoleCmd("sm_louis",		cmdLouisUse,	"Changes your survivor character into Louis");
 
-	RegConsoleCmd("sm_z", 			cmdZoeyUse, 	"Changes your survivor character into Zoey");
-	RegConsoleCmd("sm_n", 			cmdNickUse, 	"Changes your survivor character into Nick");
-	RegConsoleCmd("sm_e", 			cmdEllisUse, 	"Changes your survivor character into Ellis");
-	RegConsoleCmd("sm_c", 			cmdCoachUse, 	"Changes your survivor character into Coach");
-	RegConsoleCmd("sm_r", 			cmdRochelleUse, "Changes your survivor character into Rochelle");
-	RegConsoleCmd("sm_b", 			cmdBillUse, 	"Changes your survivor character into Bill");
-	RegConsoleCmd("sm_f", 			cmdBikerUse, 	"Changes your survivor character into Francis");
-	RegConsoleCmd("sm_l", 			cmdLouisUse, 	"Changes your survivor character into Louis");
+	RegConsoleCmd("sm_z",			cmdZoeyUse,		"Changes your survivor character into Zoey");
+	RegConsoleCmd("sm_n",			cmdNickUse,		"Changes your survivor character into Nick");
+	RegConsoleCmd("sm_e",			cmdEllisUse,	"Changes your survivor character into Ellis");
+	RegConsoleCmd("sm_c",			cmdCoachUse,	"Changes your survivor character into Coach");
+	RegConsoleCmd("sm_r",			cmdRochelleUse,	"Changes your survivor character into Rochelle");
+	RegConsoleCmd("sm_b",			cmdBillUse,		"Changes your survivor character into Bill");
+	RegConsoleCmd("sm_f",			cmdBikerUse,	"Changes your survivor character into Francis");
+	RegConsoleCmd("sm_l",			cmdLouisUse,	"Changes your survivor character into Louis");
 
-	RegConsoleCmd("sm_csm", 		cmdCsm, 		"Brings up a menu to select a client's character");
+	RegConsoleCmd("sm_csm",			cmdCsm,			"Brings up a menu to select a client's character");
 
-	RegAdminCmd("sm_csc", 			cmdCsc, 		ADMFLAG_ROOT, "Brings up a menu to select a client's character");
-	RegAdminCmd("sm_setleast", 		cmdSetLeast,	ADMFLAG_ROOT, "重新将所有生还者模型设置为重复次数最少的");
+	RegAdminCmd("sm_csc",			cmdCsc,			ADMFLAG_ROOT, "Brings up a menu to select a client's character");
+	RegAdminCmd("sm_setleast",		cmdSetLeast,	ADMFLAG_ROOT, "重新将所有生还者模型设置为重复次数最少的");
 
-	g_cAutoModel = 			CreateConVar("l4d_scs_auto_model", 		"1",	"开关8人独立模型?", FCVAR_NOTIFY);
-	g_cTabHUDBar = 			CreateConVar("l4d_scs_tab_hud_bar", 	"1",	"在哪些地图上显示一代人物的TAB状态栏? \n0=默认, 1=一代图, 2=二代图, 3=一代和二代图.", FCVAR_NOTIFY);
-	g_cAdminsOnly = 		CreateConVar("l4d_csm_admins_only", 	"1",	"只允许管理员使用csm命令?", FCVAR_NOTIFY);
-	g_cInTransition = 		CreateConVar("l4d_csm_in_transition", 	"1",	"启用8人独立模型后不对正在过渡的玩家设置?", FCVAR_NOTIFY);
+	g_cAutoModel =			CreateConVar("l4d_scs_auto_model",		"1",	"开关8人独立模型?", FCVAR_NOTIFY);
+	g_cTabHUDBar =			CreateConVar("l4d_scs_tab_hud_bar",		"1",	"在哪些地图上显示一代人物的TAB状态栏? \n0=默认, 1=一代图, 2=二代图, 3=一代和二代图.", FCVAR_NOTIFY);
+	g_cAdminsOnly =			CreateConVar("l4d_csm_admins_only",		"1",	"只允许管理员使用csm命令?", FCVAR_NOTIFY);
+	g_cInTransition =		CreateConVar("l4d_csm_in_transition",	"1",	"启用8人独立模型后不对正在过渡的玩家设置?", FCVAR_NOTIFY);
 	g_cPrecacheAllSur =		FindConVar("precache_all_survivors");
 
 	g_cAutoModel.AddChangeHook(CvarChanged);
@@ -221,6 +220,7 @@ Action cmdCsc(int client, int args) {
 	return Plugin_Handled;
 }
 
+// L4D2_Adrenaline_Recovery (https://github.com/LuxLuma/L4D2_Adrenaline_Recovery/blob/ac3f62eebe95d80fcf610fb6c7c1ed56bf4b31d2/%5BL4D2%5DAdrenaline_Recovery.sp#L96-L177)
 char[] GetModelName(int client) {
 	int idx;
 	char model[31];
@@ -372,7 +372,7 @@ bool CanUse(int client, bool checkAdmin = true) {
 	return true;
 }
 
-//https://github.com/LuxLuma/L4D2_Adrenaline_Recovery
+// L4D2_Adrenaline_Recovery (https://github.com/LuxLuma/L4D2_Adrenaline_Recovery/blob/ac3f62eebe95d80fcf610fb6c7c1ed56bf4b31d2/%5BL4D2%5DAdrenaline_Recovery.sp#L96-L177)
 bool IsGettingUp(int client) {
 	char model[31];
 	GetClientModel(client, model, sizeof model);
@@ -584,7 +584,7 @@ void Toggle(bool enable) {
 	else if (enabled && !enable) {
 		enabled = false;
 		
-		UnhookEvent("round_start",			Event_RoundStart, 			EventHookMode_PostNoCopy);
+		UnhookEvent("round_start",			Event_RoundStart,			EventHookMode_PostNoCopy);
 		UnhookEvent("player_bot_replace",	Event_PlayerBotReplace,		EventHookMode_Pre);
 		UnhookEvent("bot_player_replace",	Event_BotPlayerReplace,		EventHookMode_Pre);
 		UnhookEvent("player_team",			Event_PlayerTeam,			EventHookMode_Pre);
@@ -656,14 +656,12 @@ void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast) {
 	if (!client || !IsClientInGame(client) || IsFakeClient(client))
 		return;
 
-	if (g_bOnNextFrame[client] || event.GetInt("team") != 2)
+	if (event.GetInt("team") != 2)
 		return;
 
 	switch (event.GetInt("oldteam")) {
-		case 1, 3, 4: {
-			g_bOnNextFrame[client] = true;
+		case 1, 3, 4:
 			RequestFrame(NextFrame_Player, event.GetInt("userid"));
-		}
 	}
 }
 
@@ -691,7 +689,6 @@ public void OnEntityCreated(int entity, const char[] classname) {
 
 	if (classname[0] == 'p' && strcmp(classname[1], "layer", false) == 0) {
 		g_bFirstSpawn[entity] = true;
-		g_bOnNextFrame[entity] = false;
 		SDKHook(entity, SDKHook_SpawnPost, PlayerSpawnPost);
 
 		if (g_iTransitioning[entity])
@@ -712,18 +709,12 @@ void PlayerSpawnPost(int client) {
 			case 0: {
 				if (g_bInTransition && g_iTransitioning[client] == 1)
 					g_bFirstSpawn[client] = false;
-				else if (!g_bOnNextFrame[client]) {
-					g_bOnNextFrame[client] = true;
+				else
 					RequestFrame(NextFrame_Player, GetClientUserId(client));
-				}
 			}
 
-			case 1, 3, 4: {
-				if (!g_bOnNextFrame[client]) {
-					g_bOnNextFrame[client] = true;
-					RequestFrame(NextFrame_Player, GetClientUserId(client));
-				}
-			}
+			case 1, 3, 4:
+				RequestFrame(NextFrame_Player, GetClientUserId(client));
 		}
 	}
 }
@@ -733,22 +724,17 @@ void NextFrame_Player(int client) {
 	if (!client)
 		return;
 
-	if (!IsClientInGame(client) || GetClientTeam(client) != 2) {
-		g_bOnNextFrame[client] = false;
+	if (!IsClientInGame(client) || GetClientTeam(client) != 2)
 		return;
-	}
 
-	if ((!g_bFirstSpawn[client] && g_bBotPlayer[client]) || g_bPlayerBot[client]) {
-		g_bOnNextFrame[client] = false;
+	if ((!g_bFirstSpawn[client] && g_bBotPlayer[client]) || g_bPlayerBot[client])
 		return;
-	}
 
 	static bool once[MAXPLAYERS + 1];
 	if (once[client] && !PrepTransition() && !PrepRestoreBots()) {
 		once[client] = false;
 		SetLeastCharacter(client);
 		g_bFirstSpawn[client] = false;
-		g_bOnNextFrame[client] = false;
 	}
 	else {
 		once[client] = !PrepTransition() && !PrepRestoreBots();
@@ -756,7 +742,6 @@ void NextFrame_Player(int client) {
 		if (!g_bInTransition) {
 			SetLeastCharacter(client);
 			g_bFirstSpawn[client] = false;
-			g_bOnNextFrame[client] = false;
 		}
 		else
 			RequestFrame(NextFrame_Player, GetClientUserId(client));
@@ -967,7 +952,7 @@ void ReEquipWeapons(int client) {
 					}
 				}
 				else {
-					if (strncmp(cls, "weapon_pistol", 6) == 0 || strcmp(cls, "weapon_chainsaw") == 0)
+					if (strncmp(cls, "weapon_pistol", 13) == 0 || strcmp(cls, "weapon_chainsaw") == 0)
 						clip1 = GetEntProp(weapon, Prop_Send, "m_iClip1");
 
 					dualWielding = strcmp(cls, "weapon_pistol") == 0 && GetEntProp(weapon, Prop_Send, "m_isDualWielding");
