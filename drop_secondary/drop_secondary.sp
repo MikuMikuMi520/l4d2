@@ -24,7 +24,7 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast) {
 		return;
 
 	int entity = GetEntDataEnt2(client, m_hHiddenWeapon);
-	SetEntData(client, m_hHiddenWeapon, -1);
+	SetEntDataEnt2(client, m_hHiddenWeapon, -1, true);
 	if (entity > MaxClients && IsValidEntity(entity) && GetEntPropEnt(entity, Prop_Data, "m_hOwnerEntity") == client) {
 		float vecTarget[3];
 		GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vecTarget);
