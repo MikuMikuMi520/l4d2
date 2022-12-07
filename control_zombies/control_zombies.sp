@@ -18,7 +18,7 @@
 #define PLUGIN_NAME				"Control Zombies In Co-op"
 #define PLUGIN_AUTHOR			"sorallll"
 #define PLUGIN_DESCRIPTION		""
-#define PLUGIN_VERSION			"3.5.5"
+#define PLUGIN_VERSION			"3.5.6"
 #define PLUGIN_URL				"https://steamcommunity.com/id/sorallll"
 
 #define GAMEDATA 				"control_zombies"
@@ -33,6 +33,9 @@
 
 Data
 	g_eData[MAXPLAYERS + 1];
+
+ArrayList
+	g_aPatches;
 
 Handle
 	g_hTimer,
@@ -314,6 +317,7 @@ void Toggle(bool enable) {
 	static bool enabled;
 	if (!enabled && enable) {
 		enabled = true;
+		TogglePatches(true);
 		ToggleDetours(true);
 
 		HookEvent("round_start",				Event_RoundStart,		EventHookMode_PostNoCopy);
@@ -332,6 +336,7 @@ void Toggle(bool enable) {
 	}
 	else if (enabled && !enable) {
 		enabled = false;
+		TogglePatches(false);
 		ToggleDetours(false);
 
 		UnhookEvent("round_start",				Event_RoundStart,		EventHookMode_PostNoCopy);
@@ -1198,10 +1203,11 @@ public void OnMapStart() {
 }
 
 public void OnMapEnd() {
+	delete g_hTimer;
+
 	g_iRoundStart = 0;
 	g_iPlayerSpawn = 0;
 	g_bLeftSafeArea = false;
-	delete g_hTimer;
 }
 
 public void OnClientPutInServer(int client) {
@@ -1231,14 +1237,7 @@ void ResetClientData(int client) {
 }
 
 public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client) { 
-	if (g_bLeftSafeArea)
-		return;
-
 	g_bLeftSafeArea = true;
-	if (!g_iControlled) {
-		delete g_hTimer;
-		g_hTimer = CreateTimer(0.1, tmrPlayer, _, TIMER_REPEAT);
-	}
 }
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast) {
@@ -1246,7 +1245,6 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast) {
 		RemoveInfectedClips();
 	g_iRoundStart = 1;
 
-	delete g_hTimer;
 	for (int i = 1; i <= MaxClients; i++)
 		g_ePlayer[i].SuicideStart = 0.0;
 }
@@ -1267,7 +1265,6 @@ void Event_RoundEnd(Event event, const char[] name, bool dontBroadcast) {
 	g_iPlayerSpawn = 0;
 	g_bLeftSafeArea = false;
 
-	delete g_hTimer;
 	for (int i = 1; i <= MaxClients; i++) {
 		ResetClientData(i);
 		ForceChangeTeam(i, g_ePlayer[i].LastTeamID == 2 ? 2 : g_iPZChangeTeamTo);
@@ -1378,7 +1375,7 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
 
 	int userid = event.GetInt("userid");
 	int client = GetClientOfUserId(userid);
-	if (!client || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if (!client || !IsClientInGame(client)/* || !IsPlayerAlive(client)*/)
 		return;
 
 	g_ePlayer[client].TankBot = 0;
@@ -1398,7 +1395,7 @@ void NextFrame_PlayerSpawn(int client) {
 
 	switch (GetClientTeam(client)) {
 		case 2: {
-			if (HasPZ())
+			if (g_hTimer)
 				CreateSurGlow(client);
 		}
 		
@@ -1484,8 +1481,23 @@ Action tmrPlayer(Handle timer) {
 
 		switch (GetClientTeam(i)) {
 			case 2: {
-				if (!g_bGlowColorEnable || !IsPlayerAlive(i) || !IsValidEntRef(g_ePlayer[i].ModelEntRef))
+				if (!g_bGlowColorEnable)
 					continue;
+
+				if (!IsPlayerAlive(i)) {
+					if (IsValidEntRef(g_ePlayer[i].ModelEntRef))
+						RemoveSurGlow(i);
+
+					continue;
+				}
+
+				if (!IsValidEntRef(g_ePlayer[i].ModelEntRef)) {
+					CreateSurGlow(i);
+					continue;
+				}
+
+				if (GetEntPropEnt(g_ePlayer[i].ModelEntRef, Prop_Send, "moveparent") != i)
+					SetAttached(EntRefToEntIndex(g_ePlayer[i].ModelEntRef), i);
 
 				static int modelIndex;
 				modelIndex = GetEntProp(i, Prop_Data, "m_nModelIndex");
@@ -1927,8 +1939,15 @@ enum
 };
 
 void CreateSurGlow(int client) {
-	if (!g_bGlowColorEnable || !IsClientInGame(client) || IsClientInKickQueue(client) || GetClientTeam(client) != 2 || !IsPlayerAlive(client) || IsValidEntRef(g_ePlayer[client].ModelEntRef))
+	if (!g_bGlowColorEnable || !IsClientInGame(client) || IsClientInKickQueue(client) || GetClientTeam(client) != 2 || !IsPlayerAlive(client))
 		return;
+
+	if (IsValidEntRef(g_ePlayer[client].ModelEntRef)) {
+		if (GetEntPropEnt(g_ePlayer[client].ModelEntRef, Prop_Send, "moveparent") != client)
+			SetAttached(EntRefToEntIndex(g_ePlayer[client].ModelEntRef), client);
+
+		return;
+	}
 
 	int iEnt = CreateEntityByName("prop_dynamic_ornament");
 	if (iEnt == -1)
@@ -1948,14 +1967,7 @@ void CreateSurGlow(int client) {
 	SetEntProp(iEnt, Prop_Data, "m_CollisionGroup", 0);
 	SetEntProp(iEnt, Prop_Send, "m_noGhostCollision", 1);
 
-	SetVariantString("!activator");
-	AcceptEntityInput(iEnt, "SetParent", client);
-	SetVariantString("!activator");
-	AcceptEntityInput(iEnt, "SetAttached", client);
-
-	// [L4D/L4D2]Lux's Model Changer (https://forums.alliedmods.net/showthread.php?p=2449184)
-	SetEntProp(iEnt, Prop_Send, "m_fEffects", EF_BONEMERGE|EF_BONEMERGE_FASTCULL|EF_PARENT_ANIMATES);
-	SetEntProp(iEnt, Prop_Data, "m_usSolidFlags", GetEntProp(iEnt, Prop_Data, "m_usSolidFlags", 2)|FSOLID_NOT_SOLID, 2);
+	SetAttached(iEnt, client);
 
 	SetEntityRenderMode(iEnt, RENDER_TRANSCOLOR);
 	SetEntityRenderColor(iEnt, 0, 0, 0, 0);
@@ -1964,6 +1976,21 @@ void CreateSurGlow(int client) {
 
 	SetGlowColor(client);
 	AcceptEntityInput(iEnt, "StartGlowing");
+}
+
+// LMCCore.inc ([L4D/L4D2]Lux's Model Changer https://forums.alliedmods.net/showthread.php?p=2449184)
+void SetAttached(int iEnt, int client) {
+	SetVariantString("!activator");
+	AcceptEntityInput(iEnt, "SetParent", client);
+	SetVariantString("!activator");
+	AcceptEntityInput(iEnt, "SetAttached", client);
+
+	SetEntityMoveType(iEnt, MOVETYPE_NONE);
+
+	SetEntProp(iEnt, Prop_Send, "m_fEffects", EF_BONEMERGE|EF_BONEMERGE_FASTCULL|EF_PARENT_ANIMATES);
+	SetEntProp(iEnt, Prop_Data, "m_usSolidFlags", GetEntProp(iEnt, Prop_Data, "m_usSolidFlags", 2)|FSOLID_NOT_SOLID, 2);
+
+	TeleportEntity(iEnt, view_as<float>({0.0, 0.0, 0.0}), view_as<float>({0.0, 0.0, 0.0}), NULL_VECTOR);
 }
 
 Action Hook_SetTransmit(int entity, int client) {
@@ -2451,6 +2478,7 @@ void InitPatchs(GameData hGameData = null) {
 		SetFailState("Failed to verify patch: \"%s\"", PATCH_STATS_CONDITION);
 
 	MemoryPatch patch;
+	g_aPatches = new ArrayList();
 	Patch(hGameData, patch, PATCH_UPDATE_PZ_RESPAWN);
 	Patch(hGameData, patch, PATCH_CANBECOMEGHOST);
 	//Patch(hGameData, patch, PATCH_UNLOCKSETTING);
@@ -2463,8 +2491,8 @@ void Patch(GameData hGameData = null, MemoryPatch &patch, const char[] name) {
 	patch = MemoryPatch.CreateFromConf(hGameData, name);
 	if (!patch.Validate())
 		SetFailState("Failed to verify patch: \"%s\"", name);
-	else if (patch.Enable())
-		PrintToServer("[%s] Enabled patch: \"%s\"", PLUGIN_NAME, name);
+
+	g_aPatches.Push(patch);
 }
 
 void SetupDetours(GameData hGameData = null) {
@@ -2564,6 +2592,30 @@ void RoundRespawn(int client) {
 	g_mpStatsCondition.Enable();
 	L4D_RespawnPlayer(client);
 	g_mpStatsCondition.Disable();
+}
+
+void TogglePatches(bool enable) {
+	static bool enabled;
+	if (!enabled && enable) {
+		enabled = true;
+
+		MemoryPatch patch;
+		int count = g_aPatches.Length;
+		for (int i; i < count; i++) {
+			patch = g_aPatches.Get(i);
+			patch.Enable();
+		}
+	}
+	else if (enabled && !enable) {
+		enabled = false;
+
+		MemoryPatch patch;
+		int count = g_aPatches.Length;
+		for (int i; i < count; i++) {
+			patch = g_aPatches.Get(i);
+			patch.Disable();
+		}
+	}
 }
 
 void ToggleDetours(bool enable) {
